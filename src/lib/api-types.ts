@@ -162,3 +162,12 @@ export interface DashboardStats {
     workItem: { id: string; title: string } | null;
   }>;
 }
+
+export interface TeamUpdate {
+  id: string;
+  content: string;
+  teamId: string;
+  authorId: string;
+  author?: { id: string; name: string; email: string };
+  createdAt: string;
+}

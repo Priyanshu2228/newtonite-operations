@@ -14,6 +14,7 @@ import type {
   CreateWorkItemInput,
   PatchWorkItemInput,
   DashboardStats,
+  TeamUpdate,
 } from "./api-types";
 
 function getActivePersonaId(): string {
@@ -162,5 +163,17 @@ export async function patchUserRole(
 export async function removeTeamMembership(userId: string, teamId: string): Promise<void> {
   return apiFetch(`/api/users/${userId}?teamId=${teamId}`, {
     method: "DELETE",
+  });
+}
+
+// ── Team Updates ───────────────────────────────────────────────────────────
+export async function fetchTeamUpdates(teamId: string): Promise<{ updates: TeamUpdate[] }> {
+  return apiFetch(`/api/teams/${teamId}/updates`);
+}
+
+export async function createTeamUpdate(teamId: string, content: string): Promise<{ update: TeamUpdate }> {
+  return apiFetch(`/api/teams/${teamId}/updates`, {
+    method: "POST",
+    body: JSON.stringify({ content }),
   });
 }

@@ -18,6 +18,7 @@ export async function seed(databaseUrl: string) {
     // Clean existing data in reverse dependency order
     await prisma.activity.deleteMany();
     await prisma.idempotencyRecord.deleteMany();
+    await prisma.teamUpdate.deleteMany();
     await prisma.workItem.deleteMany();
     await prisma.teamMember.deleteMany();
     await prisma.team.deleteMany();
@@ -283,11 +284,36 @@ export async function seed(databaseUrl: string) {
       await prisma.activity.create({ data: act });
     }
 
+    // 6. Create Team Updates
+    await prisma.teamUpdate.createMany({
+      data: [
+        {
+          teamId: engTeam.id,
+          authorId: engMember.id,
+          content: "Deployment completed. Monitoring error rates before closing the incident.",
+          createdAt: pastDate(0.1),
+        },
+        {
+          teamId: financeTeam.id,
+          authorId: finLead.id,
+          content: "Settlement file received. Reconciliation is in progress.",
+          createdAt: pastDate(0.2),
+        },
+        {
+          teamId: opsTeam.id,
+          authorId: admin.id,
+          content: "HVAC inspection has been handed over to Facilities.",
+          createdAt: pastDate(0.5),
+        },
+      ],
+    });
+
     console.log(`[Seed Success] Database seeded with:
 - 6 Users (${Object.keys(PERSONAS).join(", ")})
 - 3 Teams (Finance, Engineering, Operations)
 - 6 TeamMemberships
 - ${allWorkItems.length} WorkItems (Finance: ${financeItemsData.length}, Eng: ${engItemsData.length}, Ops: ${opsItemsData.length})
+- 3 Team Updates
 - ${activityBatch.length + allWorkItems.length} Total Activity records (${activityBatch.length} on item ${targetItem.id})`);
 
   } finally {

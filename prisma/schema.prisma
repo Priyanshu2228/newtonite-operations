@@ -60,6 +60,7 @@ model User {
   createdWorkItems  WorkItem[]   @relation("CreatedBy")
   assignedWorkItems WorkItem[]   @relation("AssignedTo")
   activities        Activity[]
+  teamUpdates       TeamUpdate[]
   createdAt         DateTime     @default(now())
 }
 
@@ -69,6 +70,7 @@ model Team {
   description String?
   members     TeamMember[]
   workItems   WorkItem[]
+  updates     TeamUpdate[]
   createdAt   DateTime     @default(now())
 }
 
@@ -144,4 +146,16 @@ model IdempotencyRecord {
   createdAt    DateTime @default(now())
 
   @@unique([userId, operation, key])
+}
+
+model TeamUpdate {
+  id        String   @id @default(uuid())
+  content   String
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id])
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([teamId, createdAt])
 }

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import type { Team } from "@/lib/api-types";
 import Link from "next/link";
+import { TeamUpdates } from "@/components/team-updates";
 
 function MemberList({ teamId }: { teamId: string }) {
   const { personaId } = usePersona();
@@ -164,7 +165,7 @@ function TeamCard({ team }: { team: Team }) {
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between px-5 py-2.5 border-t border-border text-xs font-medium text-muted-foreground hover:bg-muted/40 transition-colors"
       >
-        <span>{expanded ? "Hide members" : "Show members"}</span>
+        <span>{expanded ? "Hide details" : "Show details"}</span>
         {expanded ? (
           <ChevronUp className="h-3.5 w-3.5" />
         ) : (
@@ -172,10 +173,21 @@ function TeamCard({ team }: { team: Team }) {
         )}
       </button>
 
-      {/* Member list */}
+      {/* Details */}
       {expanded && (
-        <div className="px-5 pb-4">
-          <MemberList teamId={team.id} />
+        <div className="px-5 pb-5 space-y-6">
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0">
+              Team Updates
+            </p>
+            <TeamUpdates teamId={team.id} />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0">
+              Members
+            </p>
+            <MemberList teamId={team.id} />
+          </div>
         </div>
       )}
     </div>

@@ -29,6 +29,7 @@ describe("Session 2 - Idempotency, Activity, and APIs", () => {
   beforeEach(async () => {
     await prisma.activity.deleteMany();
     await prisma.idempotencyRecord.deleteMany();
+    await prisma.teamUpdate.deleteMany();
     await prisma.workItem.deleteMany();
     await prisma.teamMember.deleteMany();
     await prisma.team.deleteMany();
