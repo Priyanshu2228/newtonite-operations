@@ -3,6 +3,7 @@
 import React from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { fetchActivity } from "@/lib/api-client";
+import { usePersona } from "@/lib/persona-context";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Activity } from "@/lib/api-types";
@@ -63,9 +64,10 @@ function describeActivity(activity: Activity): string {
 }
 
 export function ActivityFeed({ workItemId }: { workItemId: string }) {
+  const { personaId } = usePersona();
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
     useInfiniteQuery({
-      queryKey: ["activity", workItemId],
+      queryKey: ["activity", personaId, workItemId],
       queryFn: ({ pageParam }) => fetchActivity(workItemId, pageParam as string | null),
       initialPageParam: null as string | null,
       getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,

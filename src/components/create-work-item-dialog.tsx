@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchTeams, fetchTeamMembers, createWorkItem } from "@/lib/api-client";
+import { usePersona } from "@/lib/persona-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,6 +36,7 @@ const CATEGORIES: Category[] = [
 const PRIORITIES: Priority[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 export function CreateWorkItemDialog() {
+  const { personaId } = usePersona();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -49,7 +51,7 @@ export function CreateWorkItemDialog() {
   const [error, setError] = useState<string | null>(null);
 
   const { data: teamsData } = useQuery({
-    queryKey: ["teams"],
+    queryKey: ["teams", personaId],
     queryFn: fetchTeams,
     enabled: open,
   });

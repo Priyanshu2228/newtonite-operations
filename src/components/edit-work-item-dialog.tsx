@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { patchWorkItem, fetchTeamMembers } from "@/lib/api-client";
+import { usePersona } from "@/lib/persona-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,6 +36,7 @@ interface EditWorkItemDialogProps {
 }
 
 export function EditWorkItemDialog({ item, open, onOpenChange }: EditWorkItemDialogProps) {
+  const { personaId } = usePersona();
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
     title: item.title,
@@ -65,7 +67,7 @@ export function EditWorkItemDialog({ item, open, onOpenChange }: EditWorkItemDia
 
   // Fetch assignable members
   const { data: membersData } = useQuery({
-    queryKey: ["team-members", item.teamId],
+    queryKey: ["team-members", personaId, item.teamId],
     queryFn: () => fetchTeamMembers(item.teamId),
     enabled: open,
   });
@@ -74,9 +76,9 @@ export function EditWorkItemDialog({ item, open, onOpenChange }: EditWorkItemDia
     mutationFn: (input: Parameters<typeof patchWorkItem>[1]) =>
       patchWorkItem(item.id, input),
     onSuccess: (updated) => {
-      queryClient.setQueryData(["work-item", item.id], updated);
+      queryClient.setQueryData(["work-item", personaId, item.id], updated);
       queryClient.invalidateQueries({ queryKey: ["work-items"] });
-      queryClient.invalidateQueries({ queryKey: ["activity", item.id] });
+      queryClient.invalidateQueries({ queryKey: ["activity"] });
       onOpenChange(false);
     },
     onError: (err: any) => {
@@ -105,7 +107,7 @@ export function EditWorkItemDialog({ item, open, onOpenChange }: EditWorkItemDia
   }
 
   function handleReload() {
-    queryClient.invalidateQueries({ queryKey: ["work-item", item.id] });
+    queryClient.invalidateQueries({ queryKey: ["work-item", personaId, item.id] });
     onOpenChange(false);
   }
 

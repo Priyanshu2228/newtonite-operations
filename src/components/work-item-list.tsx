@@ -3,8 +3,9 @@
 import React from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { fetchWorkItems } from "@/lib/api-client";
+import { usePersona } from "@/lib/persona-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,7 +28,6 @@ import {
   ChevronRight,
   Inbox,
 } from "lucide-react";
-import { useRouter, usePathname } from "next/navigation";
 
 function buildParams(sp: URLSearchParams): WorkItemListParams {
   const params: WorkItemListParams = {};
@@ -54,15 +54,19 @@ function buildParams(sp: URLSearchParams): WorkItemListParams {
 }
 
 export function WorkItemList() {
+  const { personaId } = usePersona();
   const sp = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   const params = buildParams(sp);
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["work-items", Object.fromEntries(sp.entries())],
+    queryKey: ["work-items", personaId, Object.fromEntries(sp.entries())],
     queryFn: () => fetchWorkItems(params),
-    placeholderData: (prev) => prev,
+    placeholderData: (previousData, previousQuery) => {
+      if (previousQuery?.queryKey[1] !== personaId) return undefined;
+      return previousData;
+    },
   });
 
   function setPage(page: number) {

@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTeams } from "@/lib/api-client";
+import { usePersona } from "@/lib/persona-context";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,7 @@ const CATEGORIES: Category[] = [
 ];
 
 export function WorkItemFilters() {
+  const { personaId } = usePersona();
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -35,7 +37,7 @@ export function WorkItemFilters() {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const { data: teamsData } = useQuery({
-    queryKey: ["teams"],
+    queryKey: ["teams", personaId],
     queryFn: fetchTeams,
   });
 

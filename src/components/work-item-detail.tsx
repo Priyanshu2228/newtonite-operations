@@ -46,7 +46,7 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
   const [claimError, setClaimError] = useState<string | null>(null);
 
   const { data: item, isLoading, isError, error } = useQuery({
-    queryKey: ["work-item", id],
+    queryKey: ["work-item", personaId, id],
     queryFn: () => fetchWorkItem(id),
     refetchOnWindowFocus: true, // SPEC §45
   });
@@ -54,9 +54,9 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
   const claimMutation = useMutation({
     mutationFn: () => claimWorkItem(id, item!.version),
     onSuccess: (updated) => {
-      queryClient.setQueryData(["work-item", id], updated);
+      queryClient.setQueryData(["work-item", personaId, id], updated);
       queryClient.invalidateQueries({ queryKey: ["work-items"] });
-      queryClient.invalidateQueries({ queryKey: ["activity", id] });
+      queryClient.invalidateQueries({ queryKey: ["activity"] });
       setClaimError(null);
     },
     onError: (err: any) => {
