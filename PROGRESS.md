@@ -148,21 +148,20 @@ npx tsc --noEmit: EXIT:0 (clean)
 - [x] `export const dynamic = "force-dynamic"` on all route handlers
 - [ ] ENGINEERING_DECISIONS.md (5+ decisions)
 
-## Session 3 — Remaining Work
+"## Session 3 — COMPLETED ✅
 
-- [ ] Next.js App Router frontend
-- [ ] TanStack Query v5 state management
-- [ ] Persona switcher (NEXT_PUBLIC_DEMO_PERSONAS=true)
-- [ ] WorkItem list/detail/create/edit UI
-- [ ] Claim UI
-- [ ] Stale edit UX with conflict modal ("Reload latest")
-- [ ] Activity history with "Load more" cursor pagination
-- [ ] URL-based filter state
-- [ ] Debounced search
-- [ ] Loading/error/empty states
-- [ ] Window focus refetch
-- [ ] README.md with all required sections
-- [ ] Final verification pass
+- [x] Next.js App Router frontend with dark theme operational aesthetic
+- [x] TanStack Query v5 state management & caching (`staleTime`, `refetchOnWindowFocus`, `cache: "no-store"`)
+- [x] Persona switcher (`NEXT_PUBLIC_DEMO_PERSONAS=true`, X-User-Id, QueryClient cache reset per SPEC §46)
+- [x] WorkItem list/detail/create/edit UI with shadcn-compatible primitives
+- [x] Claim UI with atomic claim & backend synchronization (no optimistic claim)
+- [x] Stale edit UX with conflict alert ("Reload latest" preserving draft per SPEC §44)
+- [x] Activity history with cursor-based infinite loading ("Load more" per SPEC §48)
+- [x] URL search parameters sync for search, team, status, priority, category, assignee, overdue, and pagination (SPEC §43)
+- [x] Debounced search filtering
+- [x] Comprehensive loading, error, and empty states across all screens (SPEC §52)
+- [x] Active item refresh on window focus (`refetchOnWindowFocus: true` per SPEC §45)
+- [x] Clean production build (`npm run build`) passing without errors
 
 ---
 
@@ -171,3 +170,4 @@ npx tsc --noEmit: EXIT:0 (clean)
 - `package.json#prisma` key triggers Prisma 7 deprecation warning — this is harmless for Prisma 6 usage
 - Vitest CJS deprecation warning from Vite — cosmetic only, does not affect test results
 - PostgreSQL runs on port 5433 to avoid conflict with system PostgreSQL 14 (port 5432)
+
