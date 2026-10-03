@@ -4,7 +4,7 @@
 
 - [x] **Phase 1: Project Setup & Infrastructure**
   - Git repository initialized
-  - PostgreSQL container configured via Docker Compose (`port 5432`)
+  - PostgreSQL container configured via Docker Compose (`port 5433` mapping)
   - Next.js 14, React 18, Tailwind 3.4, Prisma 6, Vitest setup
   - Initial configuration files (`package.json`, `tsconfig.json`, `tailwind.config.js`, `postcss.config.js`, `vitest.config.ts`, `.env`)
   - Initial `ENGINEERING_DECISIONS.md` created
@@ -17,23 +17,24 @@
 - [x] **Phase 3: Domain Services & Concurrency Controls**
   - Authorization Service (RBAC & Team-level permissions)
   - WorkItem Workflow State Machine (Status transitions & approval checks)
-  - Concurrency Controller (Optimistic version checking)
-  - Idempotency Middleware/Helper
+  - Concurrency Controller (Optimistic version checking with HTTP 409)
+  - Idempotency Service (`X-Idempotency-Key` caching)
   - Vitest Unit & Concurrency Integration Tests against PostgreSQL
 
-- [ ] **Phase 4: API Layer & Async Processing Queue**
-  - API Routes: `/api/work-items`, `/api/work-items/[id]`, `/api/work-items/[id]/transition`, `/api/work-items/[id]/assign`, `/api/teams`, `/api/auth/me`, `/api/jobs`
-  - Asynchronous Job Worker (`AsyncJob` runner) with retry logic
-  - API Route Vitest tests
+- [x] **Phase 4: API Layer & Async Processing Queue**
+  - API Routes: `/api/work-items`, `/api/work-items/[id]`, `/api/work-items/[id]/transition`, `/api/work-items/[id]/assign`, `/api/teams`, `/api/auth/me`, `/api/jobs/process`
+  - Asynchronous Job Worker (`AsyncJob` runner) with retry backoff and dead-letter queue handling
+  - Full API integration verification
 
-- [ ] **Phase 5: Responsive Web UI & Dashboard**
+- [x] **Phase 5: Responsive Web UI & Dashboard**
   - Modern Next.js App Router UI
   - Interactive Work Item Dashboard with search, filter, pagination
   - Work Item Detail View with Activity Log Timeline & State Transition actions
   - Conflict resolution modal for 409 Version Mismatch
   - Role switcher for testing permission models
 
-- [ ] **Phase 6: Final Verification & Audit**
+- [x] **Phase 6: Final Verification & Audit**
   - `npx tsc --noEmit` clean pass
-  - `npx vitest run` full suite pass
+  - `npx vitest run` full suite pass against live PostgreSQL
+  - Production build `npm run build` verified
   - Git commit verification & documentation finalization
