@@ -77,7 +77,7 @@ function StatCard({ label, value, icon: Icon, color = "text-blue-600", href, urg
   );
 
   if (href) {
-    return <Link href={href} className="block outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl">{content}</Link>;
+    return <Link href={href} className="block outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md">{content}</Link>;
   }
   return content;
 }
@@ -210,7 +210,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Team breakdown */}
         {data.teamStats.length > 0 && (
-          <section className="bg-card rounded-xl border border-border p-5">
+          <section className="bg-card rounded-md border border-border p-5">
             <h2 className="section-title mb-4">Work by Team</h2>
             <div className="space-y-3">
               {data.teamStats.map((ts) => {
@@ -270,7 +270,7 @@ export default function DashboardPage() {
         )}
 
         {/* Recent Activity */}
-        <section className="bg-card rounded-xl border border-border p-5">
+        <section className="bg-card rounded-md border border-border p-5">
           <h2 className="section-title mb-4">Recent Activity</h2>
           {data.recentActivity.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">No recent activity</p>

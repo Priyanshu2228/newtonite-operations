@@ -120,7 +120,7 @@ export function EditWorkItemDialog({ item, open, onOpenChange }: EditWorkItemDia
 
         {/* Stale Version Conflict */}
         {staleConflict && (
-          <div className="rounded-xl border border-amber-700 bg-amber-950/50 p-4 space-y-3">
+          <div className="rounded-md border border-amber-700 bg-amber-950/50 p-4 space-y-3">
             <div className="flex items-center gap-2 text-amber-400">
               <AlertTriangle className="h-5 w-5" />
               <span className="font-semibold">Edit Conflict</span>

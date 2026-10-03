@@ -265,7 +265,7 @@ function UserRow({ user, teams }: { user: UserType; teams: { id: string; name: s
   });
 
   return (
-    <div className="bg-card rounded-xl border border-border p-4">
+    <div className="bg-card border border-border p-4">
       <div className="flex items-start gap-3">
         <div className="flex items-center justify-center w-9 h-9 rounded-full bg-muted shrink-0 mt-0.5">
           <User className="h-4 w-4 text-muted-foreground" />

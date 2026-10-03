@@ -24,10 +24,10 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/work-items", label: "Work Queue", icon: ListChecks },
-  { href: "/teams", label: "Teams", icon: Building2 },
-  { href: "/admin", label: "Admin", icon: Shield, adminOnly: true },
+  { href: "/", label: "01  Overview", icon: LayoutDashboard },
+  { href: "/work-items", label: "02  Work", icon: ListChecks },
+  { href: "/teams", label: "03  Teams", icon: Building2 },
+  { href: "/admin", label: "04  People", icon: Shield, adminOnly: true },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -55,12 +55,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className="app-sidebar">
         {/* Brand */}
         <div className="flex items-center gap-2.5 px-4 py-4 border-b border-border">
-          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 shrink-0">
-            <Zap className="h-4 w-4 text-white" />
+          <div className="flex items-center justify-center w-8 h-8 shrink-0 border border-slate-300 dark:border-slate-700">
+            <span className="font-bold text-sm tracking-tighter">N°</span>
           </div>
           <div>
-            <p className="text-sm font-bold text-foreground leading-none">Newtonite</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Operations</p>
+            <p className="text-sm font-bold text-foreground leading-none tracking-tight uppercase">Newtonite</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-widest">Operations</p>
           </div>
         </div>
 
@@ -87,7 +87,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
 
           {identityOpen && (
-            <div className="mt-1 rounded-xl border border-border bg-card shadow-lg overflow-hidden z-50 relative">
+            <div className="mt-1 rounded-md border border-border bg-card shadow-lg overflow-hidden z-50 relative">
               <div className="px-3 py-2 bg-muted/50 border-b border-border">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Evaluator Identity

@@ -308,7 +308,7 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
           </div>
 
           {/* Description */}
-          <div className="bg-card rounded-xl border border-border p-4">
+          <div className="bg-card rounded-md border border-border p-4">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Description
             </h3>
@@ -319,7 +319,7 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
 
           {/* Next action */}
           {item.nextAction && (
-            <div className="bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900 p-5 shadow-sm">
+            <div className="bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-900 p-5 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 <h3 className="text-sm font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wide">
@@ -332,7 +332,7 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
 
           {/* Comments */}
           {!isViewer && (
-            <div className="bg-card rounded-xl border border-border p-4">
+            <div className="bg-card rounded-md border border-border p-4">
               <h3 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1.5">
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 Add Comment
@@ -368,7 +368,7 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
           )}
 
           {/* Activity feed */}
-          <div className="bg-card rounded-xl border border-border p-4">
+          <div className="bg-card rounded-md border border-border p-4">
             <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-1.5">
               <Clock className="h-4 w-4 text-muted-foreground" />
               Activity Timeline
@@ -379,7 +379,7 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
 
         {/* Right: metadata sidebar */}
         <div className="space-y-4">
-          <div className="bg-card rounded-xl border border-border p-4">
+          <div className="bg-card rounded-md border border-border p-4">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Details
             </h3>
@@ -411,7 +411,11 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
                   disabled={assigneeMutation.isPending || isClosed}
                 >
                   <SelectTrigger className="w-full h-8 text-sm">
-                    <SelectValue placeholder="Assign someone..." />
+                    {item.assigneeId && (!membersData || !membersData.members.some(m => m.userId === item.assigneeId)) ? (
+                      <span className="truncate">{item.assignee?.name ?? item.assigneeId}</span>
+                    ) : (
+                      <SelectValue placeholder="Assign someone..." />
+                    )}
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="unassigned">Unassigned</SelectItem>
@@ -446,7 +450,7 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
             </MetaRow>
           </div>
 
-          <div className="bg-card rounded-xl border border-border p-4 space-y-2">
+          <div className="bg-card rounded-md border border-border p-4 space-y-2">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
               Timestamps
             </h3>
@@ -460,7 +464,7 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
 
           {/* Quick status menu */}
           {!isClosed && nextStatuses.length > 0 && !isViewer && (
-            <div className="bg-card rounded-xl border border-border p-4">
+            <div className="bg-card rounded-md border border-border p-4">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Change Status
               </h3>

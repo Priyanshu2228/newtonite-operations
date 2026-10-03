@@ -6,27 +6,27 @@
 
 @layer base {
   :root {
-    /* Neutral slate palette — professional, not garish */
-    --background: 220 20% 97%;
-    --foreground: 220 15% 12%;
+    /* Newtonite editorial palette */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
     --card: 0 0% 100%;
-    --card-foreground: 220 15% 12%;
+    --card-foreground: 0 0% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 12%;
-    --primary: 221 83% 53%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 226 100% 50%; /* Cobalt / Electric Blue */
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 13% 91%;
-    --secondary-foreground: 220 15% 15%;
-    --muted: 220 13% 95%;
-    --muted-foreground: 220 10% 35%;
-    --accent: 221 83% 97%;
-    --accent-foreground: 221 83% 40%;
-    --destructive: 0 72% 51%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 226 100% 97%;
+    --accent-foreground: 226 100% 50%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 88%;
-    --input: 220 13% 91%;
-    --ring: 221 83% 53%;
-    --radius: 0rem;
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
+    --ring: 226 100% 50%;
+    --radius: 0.125rem; /* Very minimal radius */
 
     /* Custom status tokens */
     --status-open: 220 13% 46%;
@@ -43,25 +43,25 @@
   }
 
   .dark {
-    --background: 222 25% 8%;
-    --foreground: 220 15% 92%;
-    --card: 222 25% 11%;
-    --card-foreground: 220 15% 92%;
-    --popover: 222 25% 10%;
-    --popover-foreground: 220 15% 92%;
-    --primary: 221 83% 60%;
-    --primary-foreground: 222 25% 8%;
-    --secondary: 222 20% 18%;
-    --secondary-foreground: 220 15% 80%;
-    --muted: 222 20% 15%;
-    --muted-foreground: 220 10% 55%;
-    --accent: 221 83% 15%;
-    --accent-foreground: 221 83% 75%;
+    --background: 0 0% 7%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 226 100% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 226 100% 15%;
+    --accent-foreground: 226 100% 75%;
     --destructive: 0 62% 40%;
     --destructive-foreground: 0 0% 95%;
-    --border: 222 20% 25%;
-    --input: 222 20% 16%;
-    --ring: 221 83% 60%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 226 100% 60%;
   }
 }
 
@@ -110,7 +110,7 @@
 
 /* ── Stat Cards ────────────────────────────────────────────────────────── */
 .stat-card {
-  @apply bg-card rounded-xl border border-border p-5 flex flex-col gap-1;
+  @apply bg-card border border-border p-5 flex flex-col gap-1;
 }
 
 .stat-card-value {
@@ -127,7 +127,7 @@
 }
 
 .ops-table th {
-  @apply text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 text-left border-b border-border whitespace-nowrap;
+  @apply text-[10px] font-semibold text-muted-foreground uppercase tracking-widest px-3 py-2.5 text-left border-b border-border whitespace-nowrap;
 }
 
 .ops-table td {
@@ -193,7 +193,7 @@
 
 /* ── Identity panel ────────────────────────────────────────────────────── */
 .identity-panel {
-  @apply rounded-xl border border-border bg-card p-4;
+  @apply rounded-md border border-border bg-card p-4;
 }
 
 /* ── Section header ────────────────────────────────────────────────────── */

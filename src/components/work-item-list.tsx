@@ -211,7 +211,7 @@ export function WorkItemList() {
       </div>
 
       {/* Table */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="bg-card rounded-md border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="ops-table">
             <thead>

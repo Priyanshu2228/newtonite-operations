@@ -47,14 +47,14 @@ export function DialogContent({ className, children, ...props }: React.HTMLAttri
       />
       <div
         className={cn(
-          "relative z-50 w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 shadow-2xl p-6 max-h-[90vh] overflow-y-auto",
+          "relative z-50 w-full max-w-lg rounded-md border border-border bg-background shadow-2xl p-6 max-h-[90vh] overflow-y-auto",
           className
         )}
         {...props}
       >
         <button
           onClick={() => onOpenChange(false)}
-          className="absolute right-4 top-4 rounded-md p-1 text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+          className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <X className="h-4 w-4" />
         </button>
@@ -71,14 +71,14 @@ export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLD
 export function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className={cn("text-lg font-semibold leading-none tracking-tight text-slate-100", className)}
+      className={cn("text-lg font-semibold leading-none tracking-tight text-foreground", className)}
       {...props}
     />
   );
 }
 
 export function DialogDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-sm text-slate-400", className)} {...props} />;
+  return <p className={cn("text-sm text-muted-foreground", className)} {...props} />;
 }
 
 export function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
