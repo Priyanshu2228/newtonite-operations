@@ -5,6 +5,7 @@ async function main() {
   if (!url) {
     throw new Error("DATABASE_URL environment variable is missing");
   }
+  console.log("Seeding development database at:", url);
   await seed(url);
 }
 

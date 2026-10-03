@@ -4,14 +4,15 @@ services:
     container_name: newtonite-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgrespassword
-      POSTGRES_DB: newtonite_db
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: newtonite
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d newtonite_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d newtonite"]
       interval: 3s
       timeout: 3s
       retries: 5

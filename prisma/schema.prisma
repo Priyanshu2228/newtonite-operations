@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum SystemRole {
+enum GlobalRole {
   ADMIN
   USER
 }
@@ -18,152 +18,129 @@ enum TeamRole {
   VIEWER
 }
 
-enum WorkItemType {
-  CUSTOMER_ISSUE
-  ENGINEERING_PROBLEM
+enum Category {
+  INCIDENT
+  COMPLIANCE
   PAYMENT_INVESTIGATION
-  PRODUCTION_INCIDENT
-  COMPLIANCE_REQUEST
-  OPERATIONAL_APPROVAL
+  APPROVAL
+  OPERATIONAL_TASK
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 enum Status {
   OPEN
   IN_PROGRESS
-  PENDING_APPROVAL
+  BLOCKED
   RESOLVED
   CLOSED
 }
 
-enum Priority {
-  URGENT
-  HIGH
-  MEDIUM
-  LOW
-}
-
-enum JobStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
+enum ActivityAction {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  ASSIGNED
+  UNASSIGNED
+  PRIORITY_CHANGED
 }
 
 model User {
   id                String       @id @default(uuid())
-  email             String       @unique
   name              String
-  role              SystemRole   @default(USER)
+  email             String       @unique
+  globalRole        GlobalRole   @default(USER)
   memberships       TeamMember[]
-  assignedWorkItems WorkItem[]   @relation("AssignedUser")
-  createdWorkItems  WorkItem[]   @relation("CreatedUser")
-  activityLogs      ActivityLog[]
-  comments          Comment[]
+  createdWorkItems  WorkItem[]   @relation("CreatedBy")
+  assignedWorkItems WorkItem[]   @relation("AssignedTo")
+  activities        Activity[]
   createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
 }
 
 model Team {
-  id             String       @id @default(uuid())
-  name           String       @unique
-  description    String?
-  members        TeamMember[]
-  ownedWorkItems WorkItem[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id          String       @id @default(uuid())
+  name        String       @unique
+  description String?
+  members     TeamMember[]
+  workItems   WorkItem[]
+  createdAt   DateTime     @default(now())
 }
 
 model TeamMember {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  teamId    String
-  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  role      TeamRole @default(MEMBER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id       String   @id @default(uuid())
+  userId   String
+  teamId   String
+  teamRole TeamRole @default(MEMBER)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@unique([userId, teamId])
+  @@index([userId])
 }
 
 model WorkItem {
-  id             String       @id @default(uuid())
-  title          String
-  description    String
-  type           WorkItemType
-  status         Status       @default(OPEN)
-  priority       Priority     @default(MEDIUM)
-  version        Int          @default(1)
-  
-  assignedTeamId String?
-  assignedTeam   Team?        @relation(fields: [assignedTeamId], references: [id], onDelete: SetNull)
-  
-  assignedToId   String?
-  assignedTo     User?        @relation("AssignedUser", fields: [assignedToId], references: [id], onDelete: SetNull)
-  
-  createdById    String
-  createdBy      User         @relation("CreatedUser", fields: [createdById], references: [id], onDelete: Restrict)
-  
-  tags           String[]     @default([])
-  activityLogs   ActivityLog[]
-  comments       Comment[]
-  
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id          String     @id @default(uuid())
+  title       String
+  description String
+  category    Category
+  priority    Priority   @default(MEDIUM)
+  status      Status     @default(OPEN)
 
-  @@index([status])
-  @@index([priority])
-  @@index([assignedTeamId])
-  @@index([assignedToId])
+  teamId      String
+  team        Team       @relation(fields: [teamId], references: [id])
+
+  createdById String
+  createdBy   User       @relation("CreatedBy", fields: [createdById], references: [id])
+
+  assigneeId  String?
+  assignee    User?      @relation("AssignedTo", fields: [assigneeId], references: [id])
+
+  nextAction  String?
+  dueAt       DateTime?
+
+  version     Int        @default(1)
+
+  activities  Activity[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([teamId, status, priority, updatedAt, id])
+  @@index([teamId, updatedAt, id])
+  @@index([assigneeId, status])
+  @@index([createdAt])
 }
 
-model ActivityLog {
-  id         String   @id @default(uuid())
+model Activity {
+  id         String         @id @default(uuid())
   workItemId String
-  workItem   WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  workItem   WorkItem      @relation(fields: [workItemId], references: [id])
+
   actorId    String
-  actor      User     @relation(fields: [actorId], references: [id], onDelete: Restrict)
-  action     String
-  details    Json
-  createdAt  DateTime @default(now())
+  actor      User           @relation(fields: [actorId], references: [id])
 
-  @@index([workItemId])
-  @@index([actorId])
+  action     ActivityAction
+  details    Json?
+
+  createdAt  DateTime       @default(now())
+
+  @@index([workItemId, createdAt, id])
 }
 
-model Comment {
-  id         String   @id @default(uuid())
-  workItemId String
-  workItem   WorkItem @relation(fields: [workItemId], references: [id], onDelete: Cascade)
-  authorId   String
-  author     User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
-  content    String
-  createdAt  DateTime @default(now())
-
-  @@index([workItemId])
-}
-
-model IdempotencyKey {
+model IdempotencyRecord {
   id           String   @id @default(uuid())
-  key          String   @unique
-  requestPath  String
-  responseBody Json
-  statusCode   Int
+  userId       String
+  operation    String
+  key          String
+  requestHash  String
+  statusCode   Int?
+  responseBody Json?
   createdAt    DateTime @default(now())
 
-  @@index([key])
-}
-
-model AsyncJob {
-  id          String    @id @default(uuid())
-  type        String
-  payload     Json
-  status      JobStatus @default(PENDING)
-  attempts    Int       @default(0)
-  maxAttempts Int       @default(3)
-  error       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@index([status])
+  @@unique([userId, operation, key])
 }
