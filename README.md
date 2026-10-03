@@ -124,14 +124,24 @@ For development and testing, requests authenticate via the `X-User-Id` HTTP head
 
 | Persona Name | Fixed UUID | Global Role | Team & Team Role |
 |---|---|---|---|
-| Admin | `00000000-0000-4000-a000-000000000001` | ADMIN | Finance (LEAD), Engineering (LEAD) |
-| Finance Lead | `00000000-0000-4000-a000-000000000002` | USER | Finance (LEAD) |
-| Finance Member 1 | `00000000-0000-4000-a000-000000000003` | USER | Finance (MEMBER) |
-| Finance Member 2 | `00000000-0000-4000-a000-000000000004` | USER | Finance (MEMBER) |
-| Engineering Member | `00000000-0000-4000-a000-000000000005` | USER | Engineering (MEMBER) |
-| Engineering Viewer | `00000000-0000-4000-a000-000000000006` | USER | Engineering (VIEWER) |
+| Alex (Admin) | `00000000-0000-4000-a000-000000000001` | ADMIN | N/A (Global Access) |
+| Jordan (Finance Lead) | `00000000-0000-4000-a000-000000000002` | USER | Finance (LEAD) |
+| Sam (Finance Member) | `00000000-0000-4000-a000-000000000003` | USER | Finance (MEMBER) |
+| Riley (Finance Member) | `00000000-0000-4000-a000-000000000004` | USER | Finance (MEMBER) |
+| Morgan (Eng. Member) | `00000000-0000-4000-a000-000000000005` | USER | Engineering (MEMBER), Operations (MEMBER) |
+| Casey (Eng. Viewer) | `00000000-0000-4000-a000-000000000006` | USER | Engineering (VIEWER) |
 
 ---
+
+## Evaluator Demo Flow
+
+To see the strongest challenge behaviors, try this flow:
+1. **Explore the Dashboard as Admin**: Sign in as "Alex (Admin)". View the organizational summary, Needs Attention queues, and recent activity. Notice global access to all teams.
+2. **Needs Attention Sort**: Navigate to the Work Queue and sort by "Needs Attention". The list uses a fully server-side parameterized PostgreSQL SQL implementation (BLOCKED > IN_PROGRESS > OPEN > RESOLVED > CLOSED, then overdue, then priority).
+3. **Atomic Claim & Concurrency (OCC)**: Open an unassigned Work Item and "Claim" it. The server guarantees atomic claim (`assigneeId IS NULL`). Try updating the item title in one tab, then attempt to change status in a duplicate tab. The stale update is rejected with `409 STALE_VERSION`.
+4. **RBAC Validation**: Switch persona to "Casey (Eng. Viewer)". Notice the UI adapts: you cannot edit, claim, or add comments, and the Admin panel is inaccessible.
+5. **Idempotency**: All mutating endpoints support `X-Idempotency-Key`. Double-clicks or replays of identical requests safely return the cached success response.
+6. **People Management**: Switch back to Admin, navigate to "People", and try adding a new User and Team Membership through the modal. The system validates and applies changes using actual database mutations.
 
 ## REST API Summary
 

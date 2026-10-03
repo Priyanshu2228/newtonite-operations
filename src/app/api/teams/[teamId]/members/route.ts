@@ -32,11 +32,9 @@ export async function GET(
       throw new NotFoundError(`Team '${teamId}' not found`);
     }
 
-    // Return only LEAD or MEMBER (not VIEWER)
     const members = await prisma.teamMember.findMany({
       where: {
         teamId,
-        teamRole: { in: [TeamRole.LEAD, TeamRole.MEMBER] },
       },
       include: {
         user: { select: { id: true, name: true, email: true } },
@@ -46,10 +44,15 @@ export async function GET(
 
     return apiResponse({
       members: members.map((m) => ({
-        id: m.user.id,
-        name: m.user.name,
-        email: m.user.email,
+        id: m.id,
+        userId: m.userId,
+        teamId: m.teamId,
         teamRole: m.teamRole,
+        user: {
+          id: m.user.id,
+          name: m.user.name,
+          email: m.user.email,
+        }
       })),
     });
   } catch (err) {

@@ -133,6 +133,19 @@ export async function fetchUsers(): Promise<{ users: User[] }> {
   return apiFetch("/api/users");
 }
 
+export async function createUser(payload: {
+  name: string;
+  email: string;
+  globalRole: "ADMIN" | "USER";
+  teamId?: string;
+  teamRole?: "LEAD" | "MEMBER" | "VIEWER";
+}): Promise<User> {
+  return apiFetch("/api/users", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function patchUserRole(
   userId: string,
   payload: {

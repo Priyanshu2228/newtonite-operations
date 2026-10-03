@@ -2,10 +2,11 @@
 
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchUsers, fetchTeams, patchUserRole, removeTeamMembership } from "@/lib/api-client";
+import { fetchUsers, fetchTeams, patchUserRole, removeTeamMembership, createUser } from "@/lib/api-client";
 import { usePersona, ALL_PERSONAS } from "@/lib/persona-context";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -111,6 +112,128 @@ function AddMembershipDialog({
           >
             {mutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
             Add
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AddPersonDialog({
+  teams,
+  open,
+  onOpenChange,
+  onSaved,
+}: {
+  teams: { id: string; name: string }[];
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [globalRole, setGlobalRole] = useState<"ADMIN" | "USER">("USER");
+  const [teamId, setTeamId] = useState<string>("none");
+  const [teamRole, setTeamRole] = useState<"LEAD" | "MEMBER" | "VIEWER">("MEMBER");
+  const [error, setError] = useState<string | null>(null);
+  const { personaId } = usePersona();
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      createUser({
+        name,
+        email,
+        globalRole,
+        teamId: teamId === "none" ? undefined : teamId,
+        teamRole: teamId === "none" ? undefined : teamRole,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users", personaId] });
+      onSaved();
+      onOpenChange(false);
+      setName("");
+      setEmail("");
+      setGlobalRole("USER");
+      setTeamId("none");
+      setTeamRole("MEMBER");
+      setError(null);
+    },
+    onError: (err: any) => setError(err.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add Person</DialogTitle>
+        </DialogHeader>
+        {error && (
+          <p className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</p>
+        )}
+        <div className="space-y-4">
+          <div className="grid gap-3">
+            <div className="space-y-1.5">
+              <Label>Full name</Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Alex Morgan" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Email</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="alex@newtonite.com" />
+            </div>
+          </div>
+          
+          <div className="border-t pt-3">
+            <div className="space-y-1.5 mb-3">
+              <Label>Global Role</Label>
+              <p className="text-xs text-muted-foreground mb-1">Determines global administration access.</p>
+              <Select value={globalRole} onValueChange={(v: any) => setGlobalRole(v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USER">User (Standard Access)</SelectItem>
+                  <SelectItem value="ADMIN">Admin (Full System Access)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="border-t pt-3">
+            <p className="text-sm font-medium mb-3">Initial Team Assignment (Optional)</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Team</Label>
+                <Select value={teamId} onValueChange={setTeamId}>
+                  <SelectTrigger><SelectValue placeholder="No team" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No initial team</SelectItem>
+                    {teams.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Team Role</Label>
+                <Select value={teamRole} onValueChange={(v: any) => setTeamRole(v)} disabled={teamId === "none"}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LEAD">Lead</SelectItem>
+                    <SelectItem value="MEMBER">Member</SelectItem>
+                    <SelectItem value="VIEWER">Viewer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button
+            onClick={() => mutation.mutate()}
+            disabled={!name || !email || mutation.isPending}
+          >
+            {mutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
+            Create Person
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -236,6 +359,7 @@ function UserRow({ user, teams }: { user: UserType; teams: { id: string; name: s
 
 export default function AdminPage() {
   const { personaId } = usePersona();
+  const [addPersonOpen, setAddPersonOpen] = useState(false);
   const activePersona = ALL_PERSONAS.find((p) => p.id === personaId);
   const isAdmin = activePersona?.role === "Global Admin";
 
@@ -268,11 +392,17 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Admin</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Manage users, global roles, and team memberships
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">People</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Manage users, global roles, and team memberships
+          </p>
+        </div>
+        <Button onClick={() => setAddPersonOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add person
+        </Button>
       </div>
 
       {isLoading && (
@@ -301,6 +431,13 @@ export default function AdminPage() {
           ))}
         </div>
       )}
+
+      <AddPersonDialog
+        teams={teamsData?.teams ?? []}
+        open={addPersonOpen}
+        onOpenChange={setAddPersonOpen}
+        onSaved={() => {}}
+      />
     </div>
   );
 }

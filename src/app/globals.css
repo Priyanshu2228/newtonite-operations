@@ -16,9 +16,9 @@
     --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
     --secondary: 220 13% 91%;
-    --secondary-foreground: 220 15% 25%;
+    --secondary-foreground: 220 15% 15%;
     --muted: 220 13% 95%;
-    --muted-foreground: 220 10% 50%;
+    --muted-foreground: 220 10% 35%;
     --accent: 221 83% 97%;
     --accent-foreground: 221 83% 40%;
     --destructive: 0 72% 51%;
@@ -26,7 +26,7 @@
     --border: 220 13% 88%;
     --input: 220 13% 91%;
     --ring: 221 83% 53%;
-    --radius: 0.5rem;
+    --radius: 0rem;
 
     /* Custom status tokens */
     --status-open: 220 13% 46%;
@@ -59,7 +59,7 @@
     --accent-foreground: 221 83% 75%;
     --destructive: 0 62% 40%;
     --destructive-foreground: 0 0% 95%;
-    --border: 222 20% 18%;
+    --border: 222 20% 25%;
     --input: 222 20% 16%;
     --ring: 221 83% 60%;
   }

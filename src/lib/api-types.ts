@@ -19,6 +19,10 @@ export interface Team {
   name: string;
   description?: string | null;
   createdAt: string;
+  _count?: {
+    members: number;
+    workItems: number;
+  };
 }
 
 export interface TeamMember {
@@ -105,7 +109,7 @@ export interface WorkItemListParams {
   overdue?: boolean;
   page?: number;
   limit?: number;
-  sort?: "updatedAt" | "createdAt" | "dueAt" | "priority";
+  sort?: "attention" | "updatedAt" | "createdAt" | "dueAt" | "priority";
   sortDir?: "asc" | "desc";
 }
 

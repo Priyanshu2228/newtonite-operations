@@ -93,10 +93,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   Evaluator Identity
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Switch to test different roles and permissions
+                  Switching personas injects a different <code className="bg-muted px-1 py-0.5 rounded">X-User-Id</code> header into all API requests, allowing you to test RBAC and data isolation.
                 </p>
               </div>
-              <div className="p-1">
+              <div className="p-1 max-h-[300px] overflow-y-auto">
                 {ALL_PERSONAS.map((p) => (
                   <button
                     key={p.id}

@@ -28,8 +28,9 @@ export function PersonaProvider({ children }: { children: React.ReactNode }) {
     (id: string) => {
       localStorage.setItem("newtonite:personaId", id);
       setPersonaIdState(id);
-      // Per SPEC §46: invalidate all queries on persona switch
+      // Completely discard cache and force reload to fetch with new X-User-Id
       queryClient.clear();
+      window.location.reload();
     },
     [queryClient]
   );

@@ -20,7 +20,15 @@ import {
   formatRelative,
   formatDueLabel,
 } from "@/lib/display-helpers";
-import { usePersona } from "@/lib/persona-context";
+import { usePersona, ALL_PERSONAS } from "@/lib/persona-context";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { fetchTeamMembers } from "@/lib/api-client";
 import {
   ArrowLeft,
   Edit2,
@@ -96,6 +104,21 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
     refetchOnWindowFocus: true,
   });
 
+  const { data: membersData } = useQuery({
+    queryKey: ["team-members", personaId, item?.teamId],
+    queryFn: () => fetchTeamMembers(item!.teamId),
+    // Only fetch members if user can manage assignee (Admin or Lead)
+    enabled: !!item?.teamId && (ALL_PERSONAS.find((p) => p.id === personaId)?.teamRole === "Lead" || ALL_PERSONAS.find((p) => p.id === personaId)?.role === "Global Admin"),
+    retry: false,
+  });
+
+  const activePersona = ALL_PERSONAS.find((p) => p.id === personaId);
+  // Role checks based on the deterministic persona definitions
+  const isViewer = activePersona?.teamRole === "Viewer";
+  const isAdminPersona = activePersona?.role === "Global Admin";
+  // Only Leads and Admins can list team members (and thus use the Assignee dropdown)
+  const canManageAssignee = isAdminPersona || activePersona?.teamRole === "Lead";
+
   const claimMutation = useMutation({
     mutationFn: () => claimWorkItem(id, item!.version),
     onSuccess: (updated) => {
@@ -113,6 +136,17 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
   const statusMutation = useMutation({
     mutationFn: (newStatus: Status) =>
       patchWorkItem(id, { version: item!.version, status: newStatus }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["work-item", personaId, id], updated);
+      queryClient.invalidateQueries({ queryKey: ["work-items"] });
+      queryClient.invalidateQueries({ queryKey: ["activity", personaId, id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+
+  const assigneeMutation = useMutation({
+    mutationFn: (assigneeId: string | null) =>
+      patchWorkItem(id, { version: item!.version, assigneeId }),
     onSuccess: (updated) => {
       queryClient.setQueryData(["work-item", personaId, id], updated);
       queryClient.invalidateQueries({ queryKey: ["work-items"] });
@@ -188,45 +222,47 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
           <span className="text-foreground font-medium truncate max-w-xs">{item.title}</span>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Quick status transitions */}
-          {nextStatuses.slice(0, 2).map((s) => (
-            <Button
-              key={s}
-              variant={s === "RESOLVED" ? "default" : s === "BLOCKED" ? "destructive" : "outline"}
-              size="sm"
-              onClick={() => statusMutation.mutate(s)}
-              disabled={statusMutation.isPending}
-            >
-              {statusMutation.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : null}
-              {STATUS_ACTION_LABELS[s] ?? STATUS_LABELS[s]}
-            </Button>
-          ))}
+        {!isViewer && (
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Quick status transitions */}
+            {nextStatuses.slice(0, 2).map((s) => (
+              <Button
+                key={s}
+                variant={s === "RESOLVED" ? "default" : s === "BLOCKED" ? "destructive" : "outline"}
+                size="sm"
+                onClick={() => statusMutation.mutate(s)}
+                disabled={statusMutation.isPending}
+              >
+                {statusMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : null}
+                {STATUS_ACTION_LABELS[s] ?? STATUS_LABELS[s]}
+              </Button>
+            ))}
 
-          {/* Claim button */}
-          {isUnassigned && !isClosed && (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => { setClaimError(null); claimMutation.mutate(); }}
-              disabled={claimMutation.isPending}
-            >
-              {claimMutation.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-              ) : (
-                <UserCheck className="h-3.5 w-3.5 mr-1" />
-              )}
-              Claim
-            </Button>
-          )}
+            {/* Claim button */}
+            {isUnassigned && !isClosed && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => { setClaimError(null); claimMutation.mutate(); }}
+                disabled={claimMutation.isPending}
+              >
+                {claimMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                ) : (
+                  <UserCheck className="h-3.5 w-3.5 mr-1" />
+                )}
+                Claim
+              </Button>
+            )}
 
-          <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-            <Edit2 className="h-3.5 w-3.5 mr-1" />
-            Edit
-          </Button>
-        </div>
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              <Edit2 className="h-3.5 w-3.5 mr-1" />
+              Edit
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Error banner */}
@@ -283,48 +319,53 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
 
           {/* Next action */}
           {item.nextAction && (
-            <div className="bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900 p-4">
-              <h3 className="text-xs font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wider mb-1">
-                Next Action
-              </h3>
-              <p className="text-sm text-blue-900 dark:text-blue-200">{item.nextAction}</p>
+            <div className="bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900 p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <h3 className="text-sm font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wide">
+                  Next Action Required
+                </h3>
+              </div>
+              <p className="text-base font-medium text-blue-950 dark:text-blue-100 pl-7">{item.nextAction}</p>
             </div>
           )}
 
           {/* Comments */}
-          <div className="bg-card rounded-xl border border-border p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1.5">
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              Add Comment
-            </h3>
-            <p className="text-xs text-muted-foreground mb-3">
-              Record a work update, decision, or progress note — visible to all team members.
-            </p>
-            {commentError && (
-              <p className="text-xs text-red-600 mb-2">{commentError}</p>
-            )}
-            <Textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="What's happening with this item? Add context, decisions, or blockers…"
-              rows={3}
-              className="text-sm"
-            />
-            <div className="flex justify-end mt-2">
-              <Button
-                size="sm"
-                onClick={() => commentMutation.mutate()}
-                disabled={!comment.trim() || commentMutation.isPending}
-              >
-                {commentMutation.isPending ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                ) : (
-                  <Send className="h-3.5 w-3.5 mr-1" />
-                )}
-                Post Comment
-              </Button>
+          {!isViewer && (
+            <div className="bg-card rounded-xl border border-border p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1.5">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                Add Comment
+              </h3>
+              <p className="text-xs text-muted-foreground mb-3">
+                Record a work update, decision, or progress note — visible to all team members.
+              </p>
+              {commentError && (
+                <p className="text-xs text-red-600 mb-2">{commentError}</p>
+              )}
+              <Textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="What's happening with this item? Add context, decisions, or blockers…"
+                rows={3}
+                className="text-sm"
+              />
+              <div className="flex justify-end mt-2">
+                <Button
+                  size="sm"
+                  onClick={() => commentMutation.mutate()}
+                  disabled={!comment.trim() || commentMutation.isPending}
+                >
+                  {commentMutation.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  ) : (
+                    <Send className="h-3.5 w-3.5 mr-1" />
+                  )}
+                  Post Comment
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Activity feed */}
           <div className="bg-card rounded-xl border border-border p-4">
@@ -345,18 +386,46 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
             <MetaRow icon={Building2} label="Team">
               {item.team?.name ?? item.teamId}
             </MetaRow>
-            <MetaRow icon={User} label="Assignee">
-              {item.assignee ? (
-                <span>
-                  {item.assignee.name}
-                  {isAssignedToMe && (
-                    <span className="ml-1.5 text-xs text-blue-600 font-medium">(you)</span>
+            <div className="py-2.5 border-b border-border/60 last:border-0">
+              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5" />
+                Assignee
+              </p>
+              {isViewer || !canManageAssignee ? (
+                <div className="text-sm text-foreground pl-5">
+                  {item.assignee ? (
+                    <span>
+                      {item.assignee.name}
+                      {item.assigneeId === personaId && (
+                        <span className="ml-1.5 text-xs text-blue-600 font-medium">(you)</span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground italic">Unassigned</span>
                   )}
-                </span>
+                </div>
               ) : (
-                <span className="text-muted-foreground italic">Unassigned</span>
+                <Select
+                  value={item.assigneeId ?? "unassigned"}
+                  onValueChange={(val) => assigneeMutation.mutate(val === "unassigned" ? null : val)}
+                  disabled={assigneeMutation.isPending || isClosed}
+                >
+                  <SelectTrigger className="w-full h-8 text-sm">
+                    <SelectValue placeholder="Assign someone..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {membersData?.members
+                      .filter((m) => m.teamRole !== "VIEWER")
+                      .map((m) => (
+                        <SelectItem key={m.userId} value={m.userId}>
+                          {m.user.name} {m.userId === personaId ? "(you)" : ""}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               )}
-            </MetaRow>
+            </div>
             <MetaRow icon={Shield} label="Created by">
               {item.createdBy?.name ?? item.createdById}
             </MetaRow>
@@ -390,7 +459,7 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
           </div>
 
           {/* Quick status menu */}
-          {!isClosed && nextStatuses.length > 0 && (
+          {!isClosed && nextStatuses.length > 0 && !isViewer && (
             <div className="bg-card rounded-xl border border-border p-4">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Change Status
@@ -414,7 +483,7 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
         </div>
       </div>
 
-      <EditWorkItemDialog item={item} open={editOpen} onOpenChange={setEditOpen} />
+      {!isViewer && <EditWorkItemDialog item={item} open={editOpen} onOpenChange={setEditOpen} />}
     </div>
   );
 }

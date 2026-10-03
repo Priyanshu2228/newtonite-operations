@@ -13,14 +13,40 @@ export async function GET(req: NextRequest) {
     if (userCtx.globalRole === GlobalRole.ADMIN) {
       teams = await prisma.team.findMany({
         orderBy: { name: "asc" },
-        select: { id: true, name: true, description: true, createdAt: true },
+        select: { 
+          id: true, 
+          name: true, 
+          description: true, 
+          createdAt: true,
+          _count: {
+            select: {
+              members: true,
+              workItems: {
+                where: { status: { in: ["OPEN", "IN_PROGRESS", "BLOCKED"] } }
+              }
+            }
+          }
+        },
       });
     } else {
       const teamIds = userCtx.memberships.map((m) => m.teamId);
       teams = await prisma.team.findMany({
         where: { id: { in: teamIds } },
         orderBy: { name: "asc" },
-        select: { id: true, name: true, description: true, createdAt: true },
+        select: { 
+          id: true, 
+          name: true, 
+          description: true, 
+          createdAt: true,
+          _count: {
+            select: {
+              members: true,
+              workItems: {
+                where: { status: { in: ["OPEN", "IN_PROGRESS", "BLOCKED"] } }
+              }
+            }
+          }
+        },
       });
     }
 

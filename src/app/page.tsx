@@ -52,23 +52,32 @@ interface StatCardProps {
   icon: React.ComponentType<{ className?: string }>;
   color?: string;
   href?: string;
+  urgent?: boolean;
 }
 
-function StatCard({ label, value, icon: Icon, color = "text-blue-600", href }: StatCardProps) {
+function StatCard({ label, value, icon: Icon, color = "text-blue-600", href, urgent }: StatCardProps) {
   const content = (
-    <div className="stat-card group hover:border-border/80 hover:shadow-sm transition-all">
+    <div className={`stat-card group hover:shadow-sm transition-all ${
+      urgent 
+        ? "border-red-400 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]" 
+        : "hover:border-slate-400 dark:hover:border-slate-600"
+    }`}>
       <div className="flex items-center justify-between mb-2">
-        <p className="stat-card-label">{label}</p>
-        <div className={`${color} opacity-70 group-hover:opacity-100 transition-opacity`}>
+        <p className={`text-sm font-semibold ${urgent ? "text-red-700 dark:text-red-400" : "text-muted-foreground"}`}>
+          {label}
+        </p>
+        <div className={`${color} opacity-80 group-hover:opacity-100 transition-opacity`}>
           <Icon className="h-4 w-4" />
         </div>
       </div>
-      <p className={`stat-card-value ${color}`}>{value}</p>
+      <p className={`text-3xl font-bold tabular-nums ${urgent ? "text-red-700 dark:text-red-400" : color}`}>
+        {value}
+      </p>
     </div>
   );
 
   if (href) {
-    return <Link href={href}>{content}</Link>;
+    return <Link href={href} className="block outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl">{content}</Link>;
   }
   return content;
 }
@@ -125,26 +134,31 @@ export default function DashboardPage() {
             label="Active"
             value={data.my.active}
             icon={Inbox}
-            color="text-blue-600"
+            color="text-blue-700 dark:text-blue-400"
             href={`/work-items?assigneeId=${personaId}`}
           />
           <StatCard
             label="Due Today"
             value={data.my.dueToday}
             icon={Clock}
-            color="text-amber-600"
+            color={data.my.dueToday > 0 ? "text-amber-600" : "text-muted-foreground"}
+            urgent={data.my.dueToday > 0}
           />
           <StatCard
             label="Overdue"
             value={data.my.overdue}
             icon={AlertTriangle}
             color={data.my.overdue > 0 ? "text-red-600" : "text-muted-foreground"}
+            urgent={data.my.overdue > 0}
+            href={`/work-items?assigneeId=${personaId}&overdue=true`}
           />
           <StatCard
             label="Blocked"
             value={data.my.blocked}
             icon={Ban}
             color={data.my.blocked > 0 ? "text-red-600" : "text-muted-foreground"}
+            urgent={data.my.blocked > 0}
+            href={`/work-items?assigneeId=${personaId}&status=BLOCKED`}
           />
         </div>
       </section>
@@ -162,13 +176,15 @@ export default function DashboardPage() {
             label="Active Items"
             value={data.org.totalActive}
             icon={BarChart3}
-            color="text-slate-700"
+            color="text-slate-700 dark:text-slate-300"
+            href="/work-items"
           />
           <StatCard
             label="Unassigned"
             value={data.org.unassigned}
             icon={Users}
-            color={data.org.unassigned > 0 ? "text-amber-600" : "text-muted-foreground"}
+            color={data.org.unassigned > 0 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}
+            urgent={data.org.unassigned > 0}
             href="/work-items?assigneeId=unassigned"
           />
           <StatCard
@@ -176,6 +192,7 @@ export default function DashboardPage() {
             value={data.org.overdue}
             icon={AlertTriangle}
             color={data.org.overdue > 0 ? "text-red-600" : "text-muted-foreground"}
+            urgent={data.org.overdue > 0}
             href="/work-items?overdue=true"
           />
           <StatCard
@@ -183,6 +200,7 @@ export default function DashboardPage() {
             value={data.org.blocked}
             icon={Ban}
             color={data.org.blocked > 0 ? "text-red-600" : "text-muted-foreground"}
+            urgent={data.org.blocked > 0}
             href="/work-items?status=BLOCKED"
           />
         </div>

@@ -200,17 +200,18 @@ export function WorkItemFilters() {
 
         {/* Sort */}
         <Select
-          value={sp.get("sort") ?? "updatedAt"}
+          value={sp.get("sort") ?? "attention"}
           onValueChange={(v) => updateParam("sort", v)}
         >
-          <SelectTrigger className="w-[130px]">
+          <SelectTrigger className="w-[150px]">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="updatedAt">Updated</SelectItem>
-            <SelectItem value="createdAt">Created</SelectItem>
+            <SelectItem value="attention">Needs attention</SelectItem>
             <SelectItem value="dueAt">Due Date</SelectItem>
             <SelectItem value="priority">Priority</SelectItem>
+            <SelectItem value="updatedAt">Recently updated</SelectItem>
+            <SelectItem value="createdAt">Created</SelectItem>
           </SelectContent>
         </Select>
 
