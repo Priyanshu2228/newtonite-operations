@@ -14,8 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, X, SlidersHorizontal } from "lucide-react";
+import { Search, X } from "lucide-react";
 import type { Status, Priority, Category } from "@/lib/api-types";
+import { STATUS_LABELS, PRIORITY_LABELS, CATEGORY_LABELS } from "@/lib/display-helpers";
 
 const STATUSES: Status[] = ["OPEN", "IN_PROGRESS", "BLOCKED", "RESOLVED", "CLOSED"];
 const PRIORITIES: Priority[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
@@ -126,7 +127,7 @@ export function WorkItemFilters() {
             <SelectItem value="">All Statuses</SelectItem>
             {STATUSES.map((s) => (
               <SelectItem key={s} value={s}>
-                {s.replace(/_/g, " ")}
+                {STATUS_LABELS[s]}
               </SelectItem>
             ))}
           </SelectContent>
@@ -144,7 +145,7 @@ export function WorkItemFilters() {
             <SelectItem value="">All Priorities</SelectItem>
             {PRIORITIES.map((p) => (
               <SelectItem key={p} value={p}>
-                {p}
+                {PRIORITY_LABELS[p]}
               </SelectItem>
             ))}
           </SelectContent>
@@ -162,7 +163,7 @@ export function WorkItemFilters() {
             <SelectItem value="">All Categories</SelectItem>
             {CATEGORIES.map((c) => (
               <SelectItem key={c} value={c}>
-                {c.replace(/_/g, " ")}
+                {CATEGORY_LABELS[c]}
               </SelectItem>
             ))}
           </SelectContent>

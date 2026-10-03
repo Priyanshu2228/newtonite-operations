@@ -11,6 +11,7 @@ export const IDEMPOTENCY_OPERATION = {
   CREATE_WORK_ITEM: "create_work_item",
   PATCH_WORK_ITEM: "patch_work_item",
   CLAIM_WORK_ITEM: "claim_work_item",
+  COMMENT_ADDED: "comment_added",
 } as const;
 
 export type IdempotencyOperation =

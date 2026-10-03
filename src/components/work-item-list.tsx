@@ -6,27 +6,23 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { fetchWorkItems } from "@/lib/api-client";
 import { usePersona } from "@/lib/persona-context";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   STATUS_LABELS,
   PRIORITY_LABELS,
   CATEGORY_LABELS,
-  getStatusVariant,
-  getPriorityVariant,
   isOverdue,
+  formatDueLabel,
   formatRelative,
 } from "@/lib/display-helpers";
-import type { WorkItemListParams } from "@/lib/api-types";
+import type { WorkItemListParams, WorkItem } from "@/lib/api-types";
 import {
   AlertCircle,
-  Clock,
-  User,
   ChevronLeft,
   ChevronRight,
   Inbox,
+  User,
 } from "lucide-react";
 
 function buildParams(sp: URLSearchParams): WorkItemListParams {
@@ -49,8 +45,103 @@ function buildParams(sp: URLSearchParams): WorkItemListParams {
   if (sort) params.sort = sort;
   const page = sp.get("page");
   if (page) params.page = parseInt(page);
-  params.limit = 20;
+  params.limit = 25;
   return params;
+}
+
+const STATUS_CLASS: Record<string, string> = {
+  OPEN: "status-open",
+  IN_PROGRESS: "status-in-progress",
+  BLOCKED: "status-blocked",
+  RESOLVED: "status-resolved",
+  CLOSED: "status-closed",
+};
+
+const PRIORITY_DOT: Record<string, string> = {
+  CRITICAL: "priority-critical",
+  HIGH: "priority-high",
+  MEDIUM: "priority-medium",
+  LOW: "priority-low",
+};
+
+function StatusBadge({ status }: { status: string }) {
+  return (
+    <span className={`status-badge ${STATUS_CLASS[status] ?? "status-open"}`}>
+      {STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? status}
+    </span>
+  );
+}
+
+function WorkItemRow({ item, personaId }: { item: WorkItem; personaId: string }) {
+  const overdue = isOverdue(item);
+  const dueLabel = item.dueAt ? formatDueLabel(item.dueAt, item.status) : null;
+  const isMe = item.assigneeId === personaId;
+
+  return (
+    <tr>
+      <td>
+        <Link href={`/work-items/${item.id}`} className="block">
+          <div className="flex items-center gap-2">
+            <span
+              className={`priority-dot ${PRIORITY_DOT[item.priority] ?? "priority-low"} ${
+                item.priority === "CRITICAL" ? "badge-urgent" : ""
+              }`}
+            />
+            <span className="font-medium text-foreground hover:text-blue-600 transition-colors line-clamp-1">
+              {item.title}
+            </span>
+          </div>
+          {item.nextAction && (
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1 pl-4">
+              → {item.nextAction}
+            </p>
+          )}
+        </Link>
+      </td>
+      <td>
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          {CATEGORY_LABELS[item.category]}
+        </span>
+      </td>
+      <td>
+        <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+          {PRIORITY_LABELS[item.priority]}
+        </span>
+      </td>
+      <td>
+        <StatusBadge status={item.status} />
+      </td>
+      <td>
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          {item.team?.name ?? "—"}
+        </span>
+      </td>
+      <td>
+        {item.assignee ? (
+          <span className={`flex items-center gap-1 text-xs whitespace-nowrap ${isMe ? "text-blue-600 font-medium" : "text-muted-foreground"}`}>
+            <User className="h-3 w-3 shrink-0" />
+            {isMe ? "You" : item.assignee.name}
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground italic">Unassigned</span>
+        )}
+      </td>
+      <td>
+        {dueLabel ? (
+          <span className={`text-xs whitespace-nowrap ${dueLabel.urgent ? "overdue-label" : "text-muted-foreground"}`}>
+            {dueLabel.label}
+          </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        )}
+      </td>
+      <td>
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          {formatRelative(item.updatedAt)}
+        </span>
+      </td>
+    </tr>
+  );
 }
 
 export function WorkItemList() {
@@ -77,9 +168,9 @@ export function WorkItemList() {
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 w-full rounded-xl" />
+      <div className="space-y-2">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-14 w-full rounded-lg" />
         ))}
       </div>
     );
@@ -88,9 +179,9 @@ export function WorkItemList() {
   if (isError) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <AlertCircle className="h-10 w-10 text-red-400 mb-3" />
-        <p className="text-slate-300 font-medium">Failed to load work items</p>
-        <p className="text-slate-500 text-sm mt-1">
+        <AlertCircle className="h-8 w-8 text-red-500 mb-3" />
+        <p className="text-foreground font-medium">Failed to load work items</p>
+        <p className="text-muted-foreground text-sm mt-1">
           {(error as any)?.message ?? "Unknown error"}
         </p>
       </div>
@@ -100,9 +191,11 @@ export function WorkItemList() {
   if (!data || data.items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <Inbox className="h-12 w-12 text-slate-600 mb-4" />
-        <p className="text-slate-400 font-medium">No work items found</p>
-        <p className="text-slate-600 text-sm mt-1">Try adjusting your filters</p>
+        <Inbox className="h-10 w-10 text-muted-foreground mb-4" />
+        <p className="text-foreground font-medium">No work items found</p>
+        <p className="text-muted-foreground text-sm mt-1">
+          Try adjusting your filters or create a new item
+        </p>
       </div>
     );
   }
@@ -111,114 +204,50 @@ export function WorkItemList() {
   const totalPages = data.totalPages;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between text-sm text-slate-400">
-        <span>
-          {data.total} item{data.total !== 1 ? "s" : ""}
-          {totalPages > 1 && ` · Page ${currentPage} of ${totalPages}`}
-        </span>
+    <div className="space-y-3">
+      <div className="text-xs text-muted-foreground">
+        {data.total} item{data.total !== 1 ? "s" : ""}
+        {totalPages > 1 && ` · Page ${currentPage} of ${totalPages}`}
       </div>
 
-      <div className="space-y-2">
-        {data.items.map((item) => {
-          const overdue = isOverdue(item);
-          return (
-            <Link key={item.id} href={`/work-items/${item.id}`}>
-              <Card className="group hover:border-slate-600 hover:bg-slate-800/60 transition-all cursor-pointer p-4">
-                <div className="flex items-start gap-3">
-                  {/* Priority indicator */}
-                  <div
-                    className={`mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full ${
-                      item.priority === "CRITICAL"
-                        ? "bg-red-500 badge-urgent"
-                        : item.priority === "HIGH"
-                        ? "bg-orange-400"
-                        : item.priority === "MEDIUM"
-                        ? "bg-amber-500"
-                        : "bg-slate-600"
-                    }`}
-                  />
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="text-sm font-semibold text-slate-100 group-hover:text-white truncate">
-                        {item.title}
-                      </h3>
-                      <div className="flex-shrink-0 flex items-center gap-1.5">
-                        <Badge variant={getStatusVariant(item.status)}>
-                          {STATUS_LABELS[item.status]}
-                        </Badge>
-                        <Badge variant={getPriorityVariant(item.priority)}>
-                          {PRIORITY_LABELS[item.priority]}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-slate-400 mt-1 line-clamp-1">
-                      {item.description}
-                    </p>
-
-                    <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-500">
-                      {item.team && (
-                        <span className="text-slate-400">{item.team.name}</span>
-                      )}
-                      <span>·</span>
-                      <span>{CATEGORY_LABELS[item.category]}</span>
-
-                      {item.assignee ? (
-                        <>
-                          <span>·</span>
-                          <span className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {item.assignee.name}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span>·</span>
-                          <span className="text-slate-600">Unassigned</span>
-                        </>
-                      )}
-
-                      {item.dueAt && (
-                        <>
-                          <span>·</span>
-                          <span
-                            className={`flex items-center gap-1 ${
-                              overdue ? "text-red-400 font-medium" : ""
-                            }`}
-                          >
-                            <Clock className="h-3 w-3" />
-                            {overdue ? "Overdue · " : "Due "}
-                            {new Date(item.dueAt).toLocaleDateString()}
-                          </span>
-                        </>
-                      )}
-
-                      <span>·</span>
-                      <span>Updated {formatRelative(item.updatedAt)}</span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </Link>
-          );
-        })}
+      {/* Table */}
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="ops-table">
+            <thead>
+              <tr>
+                <th className="min-w-[260px]">Title / Next Action</th>
+                <th>Category</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Team</th>
+                <th>Assignee</th>
+                <th>Due</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.items.map((item) => (
+                <WorkItemRow key={item.id} item={item} personaId={personaId} />
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 pt-2">
+        <div className="flex items-center justify-center gap-3 pt-1">
           <Button
             variant="outline"
             size="sm"
             disabled={currentPage <= 1}
             onClick={() => setPage(currentPage - 1)}
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4 mr-1" />
             Prev
           </Button>
-          <span className="text-sm text-slate-400">
+          <span className="text-sm text-muted-foreground">
             {currentPage} / {totalPages}
           </span>
           <Button
@@ -228,7 +257,7 @@ export function WorkItemList() {
             onClick={() => setPage(currentPage + 1)}
           >
             Next
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
       )}

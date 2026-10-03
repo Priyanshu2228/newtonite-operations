@@ -9,9 +9,11 @@ import type {
   PaginatedActivity,
   Team,
   TeamMember,
+  User,
   WorkItemListParams,
   CreateWorkItemInput,
   PatchWorkItemInput,
+  DashboardStats,
 } from "./api-types";
 
 function getActivePersonaId(): string {
@@ -63,6 +65,11 @@ function toSearchParams(params: Record<string, unknown>): string {
   return s ? `?${s}` : "";
 }
 
+// ── Dashboard ──────────────────────────────────────────────────────────────
+export async function fetchDashboard(): Promise<DashboardStats> {
+  return apiFetch("/api/dashboard");
+}
+
 // ── Teams ──────────────────────────────────────────────────────────────────
 export async function fetchTeams(): Promise<{ teams: Team[] }> {
   return apiFetch("/api/teams");
@@ -105,6 +112,13 @@ export async function claimWorkItem(id: string, version: number): Promise<WorkIt
   });
 }
 
+export async function addComment(workItemId: string, message: string): Promise<void> {
+  return apiFetch(`/api/work-items/${workItemId}/comments`, {
+    method: "POST",
+    body: JSON.stringify({ message }),
+  });
+}
+
 // ── Activity ───────────────────────────────────────────────────────────────
 export async function fetchActivity(
   workItemId: string,
@@ -112,4 +126,28 @@ export async function fetchActivity(
 ): Promise<PaginatedActivity> {
   const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}&limit=20` : `?limit=20`;
   return apiFetch(`/api/work-items/${workItemId}/activity${qs}`);
+}
+
+// ── Users (Admin) ──────────────────────────────────────────────────────────
+export async function fetchUsers(): Promise<{ users: User[] }> {
+  return apiFetch("/api/users");
+}
+
+export async function patchUserRole(
+  userId: string,
+  payload: {
+    globalRole?: "ADMIN" | "USER";
+    memberships?: Array<{ teamId: string; teamRole: "LEAD" | "MEMBER" | "VIEWER" }>;
+  }
+): Promise<User> {
+  return apiFetch(`/api/users/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function removeTeamMembership(userId: string, teamId: string): Promise<void> {
+  return apiFetch(`/api/users/${userId}?teamId=${teamId}`, {
+    method: "DELETE",
+  });
 }

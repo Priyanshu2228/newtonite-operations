@@ -58,6 +58,14 @@ export function formatDateTime(iso: string): string {
   });
 }
 
+export function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export function formatRelative(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const seconds = Math.floor(diff / 1000);
@@ -68,5 +76,52 @@ export function formatRelative(iso: string): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
-  return formatDateTime(iso).split(",")[0];
+  return formatDate(iso);
 }
+
+/**
+ * Returns a human-readable due label:
+ * - "Overdue by 2 days" for past items
+ * - "Due today, 5:00 PM" for today
+ * - "Due in 3 days" for near future
+ * - "Due Dec 15" for further future
+ */
+export function formatDueLabel(dueAt: string, status: Status): { label: string; urgent: boolean } {
+  const due = new Date(dueAt);
+  const now = new Date();
+  const diffMs = due.getTime() - now.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  const isClosed = status === "CLOSED" || status === "RESOLVED";
+
+  if (!isClosed && diffMs < 0) {
+    const daysOverdue = Math.abs(diffDays);
+    return {
+      label: daysOverdue === 0 ? "Overdue today" : `Overdue by ${daysOverdue}d`,
+      urgent: true,
+    };
+  }
+
+  if (diffDays === 0) {
+    const time = due.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    return { label: `Due today, ${time}`, urgent: !isClosed };
+  }
+
+  if (diffDays === 1) return { label: "Due tomorrow", urgent: false };
+  if (diffDays <= 7) return { label: `Due in ${diffDays}d`, urgent: false };
+
+  return {
+    label: `Due ${due.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`,
+    urgent: false,
+  };
+}
+
+export const TEAM_ROLE_LABELS: Record<string, string> = {
+  LEAD: "Lead",
+  MEMBER: "Member",
+  VIEWER: "Viewer",
+};
+
+export const GLOBAL_ROLE_LABELS: Record<string, string> = {
+  ADMIN: "Admin",
+  USER: "User",
+};

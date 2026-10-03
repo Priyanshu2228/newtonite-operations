@@ -2,28 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @layer base {
   :root {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    /* Neutral slate palette — professional, not garish */
+    --background: 220 20% 97%;
+    --foreground: 220 15% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 15% 12%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 13% 91%;
+    --secondary-foreground: 220 15% 25%;
+    --muted: 220 13% 95%;
+    --muted-foreground: 220 10% 50%;
+    --accent: 221 83% 97%;
+    --accent-foreground: 221 83% 40%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 88%;
+    --input: 220 13% 91%;
+    --ring: 221 83% 53%;
     --radius: 0.5rem;
+
+    /* Custom status tokens */
+    --status-open: 220 13% 46%;
+    --status-in-progress: 221 83% 53%;
+    --status-blocked: 0 72% 51%;
+    --status-resolved: 142 71% 45%;
+    --status-closed: 220 13% 70%;
+
+    /* Priority tokens */
+    --priority-low: 220 13% 60%;
+    --priority-medium: 38 92% 50%;
+    --priority-high: 25 95% 53%;
+    --priority-critical: 0 72% 51%;
+  }
+
+  .dark {
+    --background: 222 25% 8%;
+    --foreground: 220 15% 92%;
+    --card: 222 25% 11%;
+    --card-foreground: 220 15% 92%;
+    --popover: 222 25% 10%;
+    --popover-foreground: 220 15% 92%;
+    --primary: 221 83% 60%;
+    --primary-foreground: 222 25% 8%;
+    --secondary: 222 20% 18%;
+    --secondary-foreground: 220 15% 80%;
+    --muted: 222 20% 15%;
+    --muted-foreground: 220 10% 55%;
+    --accent: 221 83% 15%;
+    --accent-foreground: 221 83% 75%;
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 0 0% 95%;
+    --border: 222 20% 18%;
+    --input: 222 20% 16%;
+    --ring: 221 83% 60%;
   }
 }
 
@@ -31,59 +69,189 @@
   * {
     @apply border-border;
   }
+
+  html {
+    @apply antialiased;
+  }
+
   body {
-    @apply bg-slate-950 text-slate-100;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
   }
 }
 
-/* Glassmorphic card utility */
-.glass-card {
-  background: rgba(30, 41, 59, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+/* ── App Shell ─────────────────────────────────────────────────────────── */
+.app-sidebar {
+  @apply w-60 shrink-0 flex flex-col border-r border-border bg-card h-screen sticky top-0 overflow-y-auto;
 }
 
+.app-main {
+  @apply flex-1 min-w-0 flex flex-col min-h-screen;
+}
+
+.app-topbar {
+  @apply sticky top-0 z-40 flex items-center justify-between px-6 py-3 bg-card/90 border-b border-border backdrop-blur-sm;
+}
+
+/* ── Navigation ────────────────────────────────────────────────────────── */
+.nav-item {
+  @apply flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground
+    hover:text-foreground hover:bg-muted transition-colors cursor-pointer;
+}
+
+.nav-item.active {
+  @apply text-foreground bg-accent text-accent-foreground;
+}
+
+/* ── Stat Cards ────────────────────────────────────────────────────────── */
+.stat-card {
+  @apply bg-card rounded-xl border border-border p-5 flex flex-col gap-1;
+}
+
+.stat-card-value {
+  @apply text-3xl font-bold tabular-nums;
+}
+
+.stat-card-label {
+  @apply text-sm text-muted-foreground font-medium;
+}
+
+/* ── Table ─────────────────────────────────────────────────────────────── */
+.ops-table {
+  @apply w-full text-sm;
+}
+
+.ops-table th {
+  @apply text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 py-2.5 text-left border-b border-border whitespace-nowrap;
+}
+
+.ops-table td {
+  @apply px-3 py-3 border-b border-border/60 align-middle;
+}
+
+.ops-table tr:last-child td {
+  @apply border-b-0;
+}
+
+.ops-table tbody tr {
+  @apply hover:bg-muted/40 transition-colors cursor-pointer;
+}
+
+/* ── Status badges ─────────────────────────────────────────────────────── */
+.status-badge {
+  @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset;
+}
+
+.status-open {
+  @apply bg-slate-100 text-slate-600 ring-slate-200;
+}
+.dark .status-open {
+  @apply bg-slate-800/60 text-slate-400 ring-slate-700;
+}
+
+.status-in-progress {
+  @apply bg-blue-50 text-blue-700 ring-blue-200;
+}
+.dark .status-in-progress {
+  @apply bg-blue-900/30 text-blue-400 ring-blue-800;
+}
+
+.status-blocked {
+  @apply bg-red-50 text-red-700 ring-red-200;
+}
+.dark .status-blocked {
+  @apply bg-red-900/30 text-red-400 ring-red-800;
+}
+
+.status-resolved {
+  @apply bg-emerald-50 text-emerald-700 ring-emerald-200;
+}
+.dark .status-resolved {
+  @apply bg-emerald-900/30 text-emerald-400 ring-emerald-800;
+}
+
+.status-closed {
+  @apply bg-slate-100 text-slate-400 ring-slate-200;
+}
+.dark .status-closed {
+  @apply bg-slate-800/40 text-slate-500 ring-slate-700;
+}
+
+/* ── Priority dots ─────────────────────────────────────────────────────── */
+.priority-dot {
+  @apply inline-block h-2 w-2 rounded-full flex-shrink-0;
+}
+.priority-critical { @apply bg-red-500; }
+.priority-high     { @apply bg-orange-400; }
+.priority-medium   { @apply bg-amber-400; }
+.priority-low      { @apply bg-slate-400; }
+
+/* ── Identity panel ────────────────────────────────────────────────────── */
+.identity-panel {
+  @apply rounded-xl border border-border bg-card p-4;
+}
+
+/* ── Section header ────────────────────────────────────────────────────── */
+.section-header {
+  @apply flex items-center justify-between mb-4;
+}
+
+.section-title {
+  @apply text-base font-semibold text-foreground;
+}
+
+/* ── Overdue label ─────────────────────────────────────────────────────── */
+.overdue-label {
+  @apply text-red-600 font-medium text-xs;
+}
+.dark .overdue-label {
+  @apply text-red-400;
+}
+
+/* ── Glass header (keep for fallback) ──────────────────────────────────── */
 .glass-header {
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: hsl(var(--card) / 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid hsl(var(--border));
 }
 
-/* Pulse badge for urgent items */
-@keyframes pulse-red {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.75; transform: scale(1.03); }
+/* ── Pulse badge for urgent ────────────────────────────────────────────── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
+.badge-urgent { animation: pulse-dot 1.8s ease-in-out infinite; }
 
-.badge-urgent {
-  animation: pulse-red 2s infinite ease-in-out;
-}
-
-/* shadcn animate-in utilities */
+/* ── Animate-in helpers ────────────────────────────────────────────────── */
 .animate-in {
   animation-fill-mode: forwards;
 }
 
 .fade-in-0 {
-  animation-name: fade-in;
-  animation-duration: 150ms;
-  animation-timing-function: ease-in;
+  animation: fade-in 150ms ease-out forwards;
 }
 
 .zoom-in-95 {
-  animation-name: zoom-in;
-  animation-duration: 150ms;
-  animation-timing-function: ease-in;
+  animation: zoom-in 150ms ease-out forwards;
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes zoom-in {
-  from { transform: scale(0.95); }
+  from { transform: scale(0.96); }
   to { transform: scale(1); }
 }
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/40; }

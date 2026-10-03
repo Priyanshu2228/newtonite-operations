@@ -48,6 +48,7 @@ enum ActivityAction {
   ASSIGNED
   UNASSIGNED
   PRIORITY_CHANGED
+  COMMENT_ADDED
 }
 
 model User {

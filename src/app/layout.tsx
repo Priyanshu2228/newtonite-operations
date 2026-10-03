@@ -1,11 +1,11 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Providers } from '@/components/providers';
-import { AppHeader } from '@/components/app-header';
+import { AppShell } from '@/components/app-shell';
 
 export const metadata: Metadata = {
-  title: 'Newtonite | Operational Work Management',
-  description: 'High-concurrency operational work coordination platform',
+  title: 'Newtonite | Operations Management',
+  description: 'Internal operations coordination platform for high-concurrency work management',
 };
 
 export default function RootLayout({
@@ -14,13 +14,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
+    <html lang="en">
+      <body className="min-h-screen bg-background text-foreground antialiased">
         <Providers>
-          <AppHeader />
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-            {children}
-          </main>
+          <AppShell>{children}</AppShell>
         </Providers>
       </body>
     </html>

@@ -16,6 +16,7 @@ import {
   UserMinus,
   AlertCircle,
   BarChart2,
+  MessageSquare,
   Loader2,
 } from "lucide-react";
 
@@ -26,40 +27,57 @@ const ACTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
   ASSIGNED: UserCheck,
   UNASSIGNED: UserMinus,
   PRIORITY_CHANGED: BarChart2,
+  COMMENT_ADDED: MessageSquare,
 };
 
 const ACTION_COLORS: Record<string, string> = {
-  CREATED: "text-emerald-400",
-  UPDATED: "text-blue-400",
-  STATUS_CHANGED: "text-violet-400",
-  ASSIGNED: "text-teal-400",
-  UNASSIGNED: "text-orange-400",
-  PRIORITY_CHANGED: "text-amber-400",
+  CREATED: "text-emerald-600 dark:text-emerald-400",
+  UPDATED: "text-blue-600 dark:text-blue-400",
+  STATUS_CHANGED: "text-violet-600 dark:text-violet-400",
+  ASSIGNED: "text-teal-600 dark:text-teal-400",
+  UNASSIGNED: "text-orange-600 dark:text-orange-400",
+  PRIORITY_CHANGED: "text-amber-600 dark:text-amber-400",
+  COMMENT_ADDED: "text-slate-600 dark:text-slate-400",
 };
 
-function describeActivity(activity: Activity): string {
+const ACTION_BG: Record<string, string> = {
+  CREATED: "bg-emerald-50 dark:bg-emerald-900/20",
+  UPDATED: "bg-blue-50 dark:bg-blue-900/20",
+  STATUS_CHANGED: "bg-violet-50 dark:bg-violet-900/20",
+  ASSIGNED: "bg-teal-50 dark:bg-teal-900/20",
+  UNASSIGNED: "bg-orange-50 dark:bg-orange-900/20",
+  PRIORITY_CHANGED: "bg-amber-50 dark:bg-amber-900/20",
+  COMMENT_ADDED: "bg-muted",
+};
+
+function describeActivity(activity: Activity): { summary: string; detail?: string } {
   const d = activity.details as Record<string, unknown> | null;
   switch (activity.action) {
     case "CREATED":
-      return "Created this work item";
+      return { summary: "Created this work item" };
     case "STATUS_CHANGED":
-      return `Changed status from ${d?.from ?? "?"} to ${d?.to ?? "?"}`;
+      return { summary: `Status changed: ${d?.from} → ${d?.to}` };
     case "PRIORITY_CHANGED":
-      return `Changed priority from ${d?.from ?? "?"} to ${d?.to ?? "?"}`;
+      return { summary: `Priority changed: ${d?.from} → ${d?.to}` };
     case "ASSIGNED":
-      return d?.via === "claim"
-        ? "Claimed this item"
-        : `Assigned to ${d?.assigneeName ?? "someone"}`;
+      return {
+        summary: d?.via === "claim" ? "Claimed this item" : `Assigned to a team member`,
+      };
     case "UNASSIGNED":
-      return "Removed assignee";
+      return { summary: "Removed assignee" };
     case "UPDATED": {
       const fields = d?.fields as string[] | undefined;
-      return fields?.length
-        ? `Updated: ${fields.join(", ")}`
-        : "Updated this item";
+      return {
+        summary: fields?.length ? `Updated: ${fields.join(", ")}` : "Updated this item",
+      };
     }
+    case "COMMENT_ADDED":
+      return {
+        summary: "Added a comment",
+        detail: d?.message as string | undefined,
+      };
     default:
-      return String(activity.action);
+      return { summary: String(activity.action).toLowerCase().replace(/_/g, " ") };
   }
 }
 
@@ -75,9 +93,9 @@ export function ActivityFeed({ workItemId }: { workItemId: string }) {
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-12 w-full" />
+      <div className="space-y-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-10 w-full rounded-lg" />
         ))}
       </div>
     );
@@ -85,7 +103,7 @@ export function ActivityFeed({ workItemId }: { workItemId: string }) {
 
   if (isError) {
     return (
-      <div className="flex items-center gap-2 text-red-400 py-6">
+      <div className="flex items-center gap-2 text-red-600 dark:text-red-400 py-4">
         <AlertCircle className="h-4 w-4" />
         <span className="text-sm">Failed to load activity</span>
       </div>
@@ -96,26 +114,42 @@ export function ActivityFeed({ workItemId }: { workItemId: string }) {
 
   if (allItems.length === 0) {
     return (
-      <p className="text-sm text-slate-500 py-4 text-center">No activity yet</p>
+      <p className="text-sm text-muted-foreground py-4 text-center">No activity yet</p>
     );
   }
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-0">
       {allItems.map((activity) => {
         const Icon = ACTION_ICONS[activity.action] ?? Edit3;
-        const color = ACTION_COLORS[activity.action] ?? "text-slate-400";
+        const color = ACTION_COLORS[activity.action] ?? "text-muted-foreground";
+        const bg = ACTION_BG[activity.action] ?? "bg-muted";
+        const { summary, detail } = describeActivity(activity);
+
         return (
-          <div key={activity.id} className="flex items-start gap-3 py-2.5 border-b border-slate-800/60 last:border-0">
-            <div className={`mt-0.5 flex-shrink-0 ${color}`}>
-              <Icon className="h-4 w-4" />
+          <div
+            key={activity.id}
+            className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0"
+          >
+            <div className={`mt-0.5 shrink-0 p-1.5 rounded-md ${bg}`}>
+              <Icon className={`h-3.5 w-3.5 ${color}`} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-slate-200">{describeActivity(activity)}</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs text-slate-500">{activity.actor?.name ?? "Unknown"}</span>
-                <span className="text-xs text-slate-600">·</span>
-                <span className="text-xs text-slate-500" title={formatDateTime(activity.createdAt)}>
+              <p className="text-sm text-foreground leading-snug">{summary}</p>
+              {detail && (
+                <p className="text-sm text-muted-foreground mt-1 p-2.5 bg-muted rounded-md leading-relaxed">
+                  {detail}
+                </p>
+              )}
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {activity.actor?.name ?? "System"}
+                </span>
+                <span className="text-xs text-muted-foreground/50">·</span>
+                <span
+                  className="text-xs text-muted-foreground"
+                  title={formatDateTime(activity.createdAt)}
+                >
                   {formatRelative(activity.createdAt)}
                 </span>
               </div>
@@ -131,15 +165,15 @@ export function ActivityFeed({ workItemId }: { workItemId: string }) {
             size="sm"
             onClick={() => fetchNextPage()}
             disabled={isFetchingNextPage}
-            className="w-full"
+            className="w-full text-xs"
           >
             {isFetchingNextPage ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
-                Loading...
+                Loading…
               </>
             ) : (
-              "Load more"
+              "Load earlier activity"
             )}
           </Button>
         </div>

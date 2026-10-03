@@ -11,7 +11,8 @@ export type ActivityAction =
   | "STATUS_CHANGED"
   | "ASSIGNED"
   | "UNASSIGNED"
-  | "PRIORITY_CHANGED";
+  | "PRIORITY_CHANGED"
+  | "COMMENT_ADDED";
 
 export interface Team {
   id: string;
@@ -30,6 +31,20 @@ export interface TeamMember {
     name: string;
     email: string;
   };
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  globalRole: GlobalRole;
+  createdAt: string;
+  memberships: Array<{
+    id: string;
+    teamId: string;
+    teamRole: TeamRole;
+    team: { id: string; name: string };
+  }>;
 }
 
 export interface WorkItem {
@@ -113,4 +128,33 @@ export interface PatchWorkItemInput {
   assigneeId?: string | null;
   nextAction?: string | null;
   dueAt?: string | null;
+}
+
+export interface DashboardStats {
+  org: {
+    totalActive: number;
+    unassigned: number;
+    overdue: number;
+    blocked: number;
+  };
+  my: {
+    active: number;
+    dueToday: number;
+    overdue: number;
+    blocked: number;
+  };
+  teamStats: Array<{
+    teamId: string;
+    teamName: string;
+    total: number;
+    byStatus: Record<string, number>;
+  }>;
+  recentActivity: Array<{
+    id: string;
+    action: ActivityAction;
+    details: Record<string, unknown> | null;
+    createdAt: string;
+    actor: { id: string; name: string } | null;
+    workItem: { id: string; title: string } | null;
+  }>;
 }
