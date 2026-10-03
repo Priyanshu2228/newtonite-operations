@@ -1,53 +1,33 @@
-# Newtonite — Engineering Decisions
+# Newtonite Operations — Engineering Decisions
 
-This document details five key architectural decisions made during the design and implementation of the Newtonite Operational Work Management System, along with future production scale considerations.
+This document outlines key architectural decisions made during the design and implementation of the Newtonite Operational Work Management System, focusing on the tradeoffs chosen for an internal operations tool.
 
----
+### 1. Modular monolith
 
-### 1. Modular Monolith Architecture over Microservices
-- **Problem**: Microservices introduce distributed transaction complexity, network latency overhead, split domain logic, and operational deployment friction for a core internal operational work queue.
-- **Chosen Approach**: Built as a cohesive modular monolith using Next.js 14 App Router, standard REST route handlers, domain services, repository abstraction, and PostgreSQL.
-- **Alternatives**: Microservices architecture splitting teams, work items, and activity feeds into separate HTTP services.
-- **Trade-off**: Requires strict internal domain boundary discipline within the codebase, but eliminates distributed consensus issues, simplifies atomic transactions, and ensures straightforward local/container deployment.
+**Decision:** The application is structured as a cohesive modular monolith using Next.js App Router (for both the frontend and REST API handlers), alongside domain services, repositories, and PostgreSQL.
 
----
+**Why:** While microservices provide independent scalability, they introduce distributed transaction complexity, network latency, and operational overhead. For a core internal operational work queue where data consistency and relational integrity across users, teams, and work items are paramount, a monolith eliminates distributed consensus issues. It simplifies atomic transactions and ensures straightforward local and container deployments without the need for orchestrating multiple services.
 
-### 2. PostgreSQL + Prisma 6 ORM
-- **Problem**: Need typed data access, relational integrity, deterministic migrations, and efficient SQL generation without writing raw string queries throughout the service layer.
-- **Chosen Approach**: PostgreSQL 16 managed with Prisma 6 ORM using explicit migration files (`prisma migrate deploy`) and a singleton `PrismaClient` pattern across route handlers and repositories.
-- **Alternatives**: Raw SQL queries via `pg` client, Query builders (Knex/Kysely), or NoSQL databases (MongoDB).
-- **Trade-off**: ORM abstractions add minor overhead compared to hand-optimized SQL, but provide end-to-end TypeScript type safety, migration reproducibility, and schema protection against unauthorized mutations.
+### 2. PostgreSQL and Prisma
 
----
+**Decision:** PostgreSQL 16 is used as the relational database, managed via the Prisma ORM with explicit migration files.
 
-### 3. Optimistic Concurrency Control (Version-Based Locking)
-- **Problem**: In a multi-user operational environment, multiple team members viewing the same work item might attempt simultaneous updates or claims, leading to silent lost updates or illegal state overwrites.
-- **Chosen Approach**: Every `WorkItem` maintains a monotonic integer `version` field. Any PATCH mutation requires the caller's currently known `version` and executes a conditional update (`WHERE id = :id AND version = :expectedVersion`). If zero rows are updated, the request yields `409 STALE_VERSION`.
-- **Alternatives**: Pessimistic database row locks (`SELECT ... FOR UPDATE`), which increase lock hold times and create deadlock risks under high concurrent load.
-- **Trade-off**: Requires callers to supply the current version and handle version conflicts cleanly in the UI (with draft preservation and reload prompts), but eliminates lock contention and guarantees data consistency.
+**Why:** Operational work coordination requires strict data integrity, structured schemas, and complex relational querying (e.g., filtering work items by assignee, team, status, and sorting by priorities). PostgreSQL excels at these workloads. Prisma was chosen over raw SQL or query builders because it provides end-to-end TypeScript type safety and deterministic schema migrations. The slight performance overhead of an ORM is a worthwhile tradeoff for the developer velocity and compile-time guarantees it provides against illegal state mutations.
 
----
+### 3. Team-scoped authorization
 
-### 4. Two-Phase Request Idempotency via `X-Idempotency-Key`
-- **Problem**: Unreliable network connections, client retries, or user double-clicking can cause duplicate execution of mutating operations (e.g. creating work items or claiming critical incidents).
-- **Chosen Approach**: Mutating requests accept an `X-Idempotency-Key` header. The server checks for completed records before authorization/validation to safely replay cached responses. Unfulfilled requests reserve an `IdempotencyRecord` inside an isolated transaction. Request payload hashes guarantee that key reuse with mismatched parameters is rejected with `409 IDEMPOTENCY_KEY_REUSE`.
-- **Alternatives**: Client-side deduplication alone, or external Redis key-value storage.
-- **Trade-off**: Adds database storage for idempotency records, but guarantees strict at-most-once execution for critical mutations directly inside the database transaction boundary.
+**Decision:** Authorization is handled via a combination of global system roles (ADMIN, USER) and granular team-scoped roles (LEAD, MEMBER, VIEWER), evaluated at the service layer.
 
----
+**Why:** Operational work is inherently siloed by department (Finance, Engineering, etc.) to protect sensitive information and prevent accidental cross-team interference. Implementing RBAC strictly at the service layer—rather than relying solely on UI hiding or database row-level security—ensures that all REST API endpoints independently verify if the authenticated user has the necessary team membership and role to read or mutate a specific resource.
 
-### 5. Hybrid Pagination & Server-Side Search Strategy
-- **Problem**: Fetching entire datasets into memory causes high memory overhead, slow response times, and unstable pagination when rows share identical timestamps.
-- **Chosen Approach**: Server-side offset pagination with secondary `id` sorting for `WorkItem` listings (`GET /api/work-items`). Cursor-based pagination (`createdAt`, `id` tiebreaker) for append-only `Activity` logs (`GET /api/work-items/:id/activity`). Server-side filtering and search push evaluation down to indexed PostgreSQL columns.
-- **Alternatives**: Client-side filtering of full datasets, or offset pagination for activity streams (vulnerable to page drift on append).
-- **Trade-off**: Requires composite cursor encoding (base64url) and structured index design, but provides stable performance under high activity volumes and prevents missing or duplicated log entries.
+### 4. Atomic claim and optimistic concurrency
 
----
+**Decision:** Work items are claimed using atomic database updates (`WHERE id = :id AND assignee_id IS NULL`), and all edits rely on Optimistic Concurrency Control (OCC) using a `version` field.
 
-## Future Considerations for Scaling
+**Why:** In a high-concurrency environment, multiple team members might view the same unassigned incident and attempt to claim it simultaneously. Atomic claims prevent race conditions natively in the database without requiring heavy row-level locking (`SELECT FOR UPDATE`), which can cause deadlocks. Similarly, OCC ensures that if two users try to edit a work item simultaneously, the second user receives a `409 STALE_VERSION` error, preventing silent lost updates while maintaining high throughput.
 
-1. **PostgreSQL Trigram / Full-Text Search**: Replace substring matching with PostgreSQL `pg_trgm` or `tsvector` indexes for sub-millisecond full-text queries as work item counts grow into millions.
-2. **Read-Replica Query Routing**: Offload read-heavy `GET` queries (search, activity feeds, team listings) to read replicas while routing mutating transactions to the primary database node.
-3. **Outbox Pattern & Background Processing**: Implement an explicit Transactional Outbox pattern with background workers for asynchronous external integrations (e.g., email/Slack alerts) without blocking HTTP handler execution.
-4. **Caching Layer**: Introduce Redis for short-term caching of team memberships and static metadata, paired with invalidation hooks on membership changes.
-5. **Production Authentication & SSO**: Transition from development `X-User-Id` header authentication to OIDC / SAML SSO with JWT verification middleware.
+### 5. Idempotency and append-only activity history
+
+**Decision:** Mutating endpoints accept an `X-Idempotency-Key` to safely replay duplicate requests, and all state changes emit an immutable `Activity` record. WebSockets and background workers were intentionally omitted in favor of this model.
+
+**Why:** Unreliable networks or user double-clicking can cause destructive duplicate operations (like creating two identical work items). Storing idempotency records in the database guarantees strict at-most-once execution. When combined with an append-only activity history, every change is fully auditable. We intentionally omitted WebSockets and background job queues to keep the architecture simple and robust; users pull updates predictably, and background complexity is deferred until scale necessitates an explicit outbox pattern.

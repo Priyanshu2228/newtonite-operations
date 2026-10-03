@@ -71,8 +71,11 @@ export function SelectTrigger({ className, children, ...props }: React.ButtonHTM
   );
 }
 
-export function SelectValue({ placeholder }: { placeholder?: string }) {
+export function SelectValue({ placeholder, children }: { placeholder?: string, children?: React.ReactNode }) {
   const { value, labels } = React.useContext(SelectContext);
+  if (children) {
+    return <span className={value ? "" : "text-muted-foreground"}>{children}</span>;
+  }
   const displayLabel = value !== undefined && value !== "" ? (labels[value] ?? value) : placeholder;
   return <span className={value ? "" : "text-muted-foreground"}>{displayLabel}</span>;
 }
@@ -101,7 +104,7 @@ export function SelectContent({ className, children, ...props }: React.HTMLAttri
     <div
       ref={ref}
       className={cn(
-        "absolute z-50 mt-1 w-full min-w-[8rem] overflow-hidden rounded-md border border-border bg-popover shadow-md animate-in fade-in-0 zoom-in-95",
+        "absolute z-50 mt-1 w-full min-w-[8rem] overflow-hidden rounded-md border border-border bg-white dark:bg-zinc-950 shadow-md animate-in fade-in-0 zoom-in-95",
         className
       )}
       {...props}
@@ -139,7 +142,7 @@ export function SelectItem({
       role="option"
       aria-selected={isSelected}
       className={cn(
-        "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm text-popover-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus:bg-muted focus:text-foreground",
+        "relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm text-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus:bg-muted focus:text-foreground",
         isSelected && "bg-muted font-medium text-foreground",
         className
       )}

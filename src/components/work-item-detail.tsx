@@ -411,11 +411,15 @@ export function WorkItemDetail({ id }: WorkItemDetailProps) {
                   disabled={assigneeMutation.isPending || isClosed}
                 >
                   <SelectTrigger className="w-full h-8 text-sm">
-                    {item.assigneeId && (!membersData || !membersData.members.some(m => m.userId === item.assigneeId)) ? (
-                      <span className="truncate">{item.assignee?.name ?? item.assigneeId}</span>
-                    ) : (
-                      <SelectValue placeholder="Assign someone..." />
-                    )}
+                    <SelectValue placeholder="Assign someone...">
+                      {item.assigneeId ? (
+                        <span className="truncate">
+                          {item.assignee?.name ?? membersData?.members.find(m => m.userId === item.assigneeId)?.user.name ?? "Unknown Assignee"}
+                        </span>
+                      ) : (
+                        "Unassigned"
+                      )}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="unassigned">Unassigned</SelectItem>

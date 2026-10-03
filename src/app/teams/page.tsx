@@ -108,11 +108,13 @@ function MemberList({ teamId }: { teamId: string }) {
   );
 }
 
+import { cn } from "@/lib/utils";
+
 function TeamCard({ team }: { team: Team }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-card border border-border">
+    <div className={cn("bg-card border border-border transition-all", expanded && "md:col-span-2 xl:col-span-3")}>
       {/* Header */}
       <div className="p-5">
         <div className="flex items-start gap-3 mb-4">

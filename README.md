@@ -1,155 +1,123 @@
-# Newtonite — Operational Work Management System
+# Newtonite Operations
 
-Newtonite is a modern internal operations application built for managing operational work items, compliance investigations, incidents, and approvals across organization teams under high concurrency and strict data integrity constraints.
+Newtonite Operations is an internal operational work coordination application replacing fragmented operational work across chat, spreadsheets, email, and direct conversations with structured work items, ownership, workflow, activity history, team updates, and controlled access.
 
----
+## Overview
 
-## Technology Stack & Versions
+This application centralizes operational tasks into a single platform where teams can manage their work queue, collaborate, and track progress. It prevents work from falling through the cracks by providing clear visibility into ownership and status, while enforcing strict data integrity through optimistic concurrency and atomic claims.
 
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript 5.x
-- **UI & Styling**: React 18, Tailwind CSS 3.4, Lucide Icons, custom shadcn-compatible primitives
-- **State Management**: TanStack Query v5 (`@tanstack/react-query`)
-- **Database & ORM**: PostgreSQL 16, Prisma 6 ORM (`@prisma/client` & `prisma` 6.19.3)
-- **Validation**: Zod
-- **Testing**: Vitest 1.6
-- **Containerization**: Docker & Docker Compose
+## Key capabilities
 
----
+- Work item creation and management
+- Assignment and atomic claiming
+- Status/workflow management
+- Due dates and next actions
+- Team scoped RBAC
+- Optimistic concurrency
+- Idempotent mutations
+- Activity history
+- Comments
+- Team updates
+- Search/filtering
+- Server-side pagination
+- Operational Needs Attention ordering
 
-## Architecture Overview
+## Tech Stack
 
-Newtonite is designed as a **Modular Monolith**:
+- Next.js 14 (App Router)
+- React 18
+- TypeScript
+- Tailwind CSS
+- Lucide Icons
+- Prisma ORM
+- PostgreSQL
+- Zod
+- Vitest
 
-```text
-HTTP Request
-  └─► Next.js App Router API Handler (force-dynamic)
-        └─► Auth Context (X-User-Id dev authentication)
-              └─► Zod Request Validation
-                    └─► Domain Authorization & Business Rules
-                          └─► Service Layer (WorkItem / Idempotency / Query)
-                                └─► Repository Layer (WorkItemRepository / Prisma)
-                                      └─► PostgreSQL Database
-```
+## Architecture
 
-### Key Technical Concepts
+The application is built as a modular monolith:
 
-1. **Team-Scoped RBAC**: System roles (`ADMIN`, `USER`) and team roles (`LEAD`, `MEMBER`, `VIEWER`). Viewers cannot mutate or be assigned work items; Members can only mutate items assigned to them or within their permissions; Leads & Admins hold broader team management rights.
-2. **Optimistic Concurrency Control (OCC)**: Every `WorkItem` maintains a `version` attribute. Mutating requests evaluate `WHERE id = :id AND version = :version`. If concurrent edits occur, the server returns `409 STALE_VERSION`, prompting the client to reload without losing unsaved drafts.
-3. **Atomic Claim**: Unassigned work items can be claimed atomically via conditional updates (`WHERE id = :id AND assignee_id IS NULL AND status != 'CLOSED'`). Losing concurrent claims trigger a fresh read to return explicit error responses (`409 ALREADY_ASSIGNED` or `422 CLAIM_NOT_ALLOWED_FOR_STATUS`).
-4. **Request Idempotency**: Mutating endpoints support an optional `X-Idempotency-Key` header. Requests check for completed execution before validation to safely replay responses. Key reservations take place within database transactions, and hash mismatches trigger `409 IDEMPOTENCY_KEY_REUSE`.
-5. **Deterministic Pagination**: Offset pagination (`items`, `total`, `totalPages`, `page`, `limit`) with secondary `id` sorting for work items. Base64url cursor pagination with tiebreakers `(createdAt, id)` for append-only `Activity` logs.
-
----
+frontend
+→ REST API
+→ services/repositories/domain
+→ PostgreSQL
 
 ## Prerequisites
 
-- **Node.js**: `v20.x` (or managed via `.nvmrc`)
-- **npm**: `v10.x`
-- **Docker**: Docker Desktop / Docker Engine (for local PostgreSQL instance)
+- Node v20.x
+- Docker Desktop
+- PostgreSQL (provided via Docker Compose)
 
----
+## Setup
 
-## Environment Configuration
-
-Create a `.env` file in the root directory (matching `.env.example`):
-
-```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5433/newtonite"
-DATABASE_URL_TEST="postgresql://postgres:postgres@localhost:5433/newtonite_test"
-NEXT_PUBLIC_DEMO_PERSONAS=true
+```bash
+npm install
+docker compose up -d
+npx prisma migrate deploy
+npm run seed
 ```
 
----
+## Development
 
-## Installation & Setup
+```bash
+npm run dev
+```
 
-1. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
+Then visit:
+http://localhost:3000
 
-2. **Start PostgreSQL Container**:
-   ```bash
-   docker compose up -d
-   ```
-   *Note: PostgreSQL runs on port `5433` to prevent conflicts with default local PostgreSQL services.*
+## Production
 
-3. **Run Prisma Database Migrations**:
-   ```bash
-   npx prisma migrate deploy
-   ```
+```bash
+npm run build
+npm start
+```
 
-4. **Seed Database**:
-   ```bash
-   npm run seed
-   ```
+## Tests
 
----
+```bash
+npx vitest run
+```
+Latest verified test count: 23 tests passing.
 
-## Development & Production Commands
+## Demo personas
 
-- **Development Server**:
-  ```bash
-  npm run dev
-  ```
-  Open [http://localhost:3000](http://localhost:3000) to access the application.
+The application features a demo persona switcher for testing different roles and permissions.
 
-- **TypeScript Type Check**:
-  ```bash
-  npx tsc --noEmit
-  ```
+| Persona Name | Global Role | Team & Team Role |
+|---|---|---|
+| Alex (Admin) | ADMIN | N/A (Global Access) |
+| Jordan (Finance Lead) | USER | Finance (LEAD) |
+| Sam (Finance Member) | USER | Finance (MEMBER) |
+| Riley (Finance Member) | USER | Finance (MEMBER) |
+| Morgan (Eng. Member) | USER | Engineering (MEMBER), Operations (MEMBER) |
+| Casey (Eng. Viewer) | USER | Engineering (VIEWER) |
 
-- **Run Integration Tests**:
-  ```bash
-  npx vitest run
-  ```
-  *Note: All integration tests run against the real PostgreSQL test database (`newtonite_test`). Safety checks verify that the test database is isolated before applying migrations or test fixtures.*
+Evaluator identity switching works by passing the `X-User-Id` HTTP header in requests. The frontend includes a persona switcher dropdown in the header when `NEXT_PUBLIC_DEMO_PERSONAS=true` is set.
 
-- **Production Build**:
-  ```bash
-  npm run build
-  ```
+## Demo flow
 
-- **Start Production Server**:
-  ```bash
-  npm run start
-  ```
+1. **Dashboard / Needs Attention**: Sign in as an Admin. View the dashboard for organizational metrics and the Needs Attention queues.
+2. **Work Queue**: Navigate to Work Items. Observe the server-side pagination and Needs Attention ordering.
+3. **Open a work item**: Click a work item to view its details.
+4. **Claim or assign work**: Use the claim button or assignee dropdown to assign a work item.
+5. **Change state / next action**: Update the status or next action of the work item.
+6. **Activity/comments**: Post a comment and observe the append-only activity history log.
+7. **Switch persona to demonstrate RBAC**: Switch to a Viewer persona (e.g., Casey) and observe that mutation actions are disabled.
+8. **Teams / People / Team Updates**: Navigate to the Teams page to view team compositions, active work, and post team updates.
 
----
+## Engineering highlights
 
-## Development Authentication & Personas
+- **Atomic claim**: Work items are assigned using conditional updates (`WHERE assigneeId IS NULL`) to prevent concurrent claim races.
+- **Optimistic concurrency**: Mutating requests validate a `version` attribute to prevent overwriting concurrent edits.
+- **Idempotency**: All mutating endpoints support `X-Idempotency-Key` to safely handle network retries and double-clicks.
+- **Resource-level authorization**: Service-layer checks ensure users can only access or mutate resources they are permitted to.
+- **Server-side pagination/filtering/sorting**: Robust SQL implementation for complex sorts like Needs Attention.
+- **Append-only activity/history**: Immutable activity logs for tracking work item lifecycle.
 
-For development and testing, requests authenticate via the `X-User-Id` HTTP header. When `NEXT_PUBLIC_DEMO_PERSONAS=true`, the UI header displays a persona switcher allowing seamless identity switching:
+## Known limitations
 
-| Persona Name | Fixed UUID | Global Role | Team & Team Role |
-|---|---|---|---|
-| Alex (Admin) | `00000000-0000-4000-a000-000000000001` | ADMIN | N/A (Global Access) |
-| Jordan (Finance Lead) | `00000000-0000-4000-a000-000000000002` | USER | Finance (LEAD) |
-| Sam (Finance Member) | `00000000-0000-4000-a000-000000000003` | USER | Finance (MEMBER) |
-| Riley (Finance Member) | `00000000-0000-4000-a000-000000000004` | USER | Finance (MEMBER) |
-| Morgan (Eng. Member) | `00000000-0000-4000-a000-000000000005` | USER | Engineering (MEMBER), Operations (MEMBER) |
-| Casey (Eng. Viewer) | `00000000-0000-4000-a000-000000000006` | USER | Engineering (VIEWER) |
-
----
-
-## Evaluator Demo Flow
-
-To see the strongest challenge behaviors, try this flow:
-1. **Explore the Dashboard as Admin**: Sign in as "Alex (Admin)". View the organizational summary, Needs Attention queues, and recent activity. Notice global access to all teams.
-2. **Needs Attention Sort**: Navigate to the Work Queue and sort by "Needs Attention". The list uses a fully server-side parameterized PostgreSQL SQL implementation (BLOCKED > IN_PROGRESS > OPEN > RESOLVED > CLOSED, then overdue, then priority).
-3. **Atomic Claim & Concurrency (OCC)**: Open an unassigned Work Item and "Claim" it. The server guarantees atomic claim (`assigneeId IS NULL`). Try updating the item title in one tab, then attempt to change status in a duplicate tab. The stale update is rejected with `409 STALE_VERSION`.
-4. **RBAC Validation**: Switch persona to "Casey (Eng. Viewer)". Notice the UI adapts: you cannot edit, claim, or add comments, and the Admin panel is inaccessible.
-5. **Idempotency**: All mutating endpoints support `X-Idempotency-Key`. Double-clicks or replays of identical requests safely return the cached success response.
-6. **People Management**: Switch back to Admin, navigate to "People", and try adding a new User and Team Membership through the modal. The system validates and applies changes using actual database mutations.
-
-## REST API Summary
-
-- `GET /api/teams` — Scoped teams listing
-- `GET /api/teams/:teamId/members` — Team members for assignment
-- `GET /api/work-items` — Work queue listing with search, filtering, and pagination
-- `POST /api/work-items` — Create work item (Idempotency supported)
-- `GET /api/work-items/:id` — Detail view with RBAC read enforcement
-- `PATCH /api/work-items/:id` — OCC partial update (Idempotency supported)
-- `POST /api/work-items/:id/claim` — Atomic claim action (Idempotency supported)
-- `GET /api/work-items/:id/activity` — Cursor-paginated activity feed
+- Development/evaluator authentication uses `X-User-Id` rather than production SSO.
+- No real-time WebSocket layer for live updates.
+- Search is currently PostgreSQL `ILIKE` and could use specialized indexing (e.g., pg_trgm or Elasticsearch) at a much larger scale.
