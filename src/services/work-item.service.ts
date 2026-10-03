@@ -19,15 +19,24 @@ import { parseCreatePayload, parsePatchPayload } from "../validation/work-item";
 import { ActivityAction, Status, Priority, Prisma } from "@prisma/client";
 
 export class WorkItemService {
-  static async createWorkItem(userCtx: UserContext, rawInput: unknown) {
+  /**
+   * Create a WorkItem.
+   * All business logic runs inside a Prisma transaction supplied by the caller
+   * (for idempotency integration) or a new one if tx is not provided.
+   */
+  static async createWorkItem(
+    userCtx: UserContext,
+    rawInput: unknown,
+    tx?: Prisma.TransactionClient
+  ) {
     const input = parseCreatePayload(rawInput);
 
     if (!canCreateInTeam(userCtx, input.teamId)) {
       throw new ForbiddenError("You do not have permission to create work items in this team");
     }
 
-    return await prisma.$transaction(async (tx) => {
-      const createdItem = await tx.workItem.create({
+    const run = async (client: Prisma.TransactionClient) => {
+      const createdItem = await client.workItem.create({
         data: {
           title: input.title,
           description: input.description,
@@ -37,7 +46,7 @@ export class WorkItemService {
           status: Status.OPEN,
           createdById: userCtx.id,
           nextAction: input.nextAction ?? null,
-          dueAt: input.dueAt ? new Date(input.dueAt) : null,
+          dueAt: input.dueAt ? new Date(input.dueAt as string) : null,
           version: 1,
         },
         include: {
@@ -47,8 +56,7 @@ export class WorkItemService {
         },
       });
 
-      // Appends CREATED Activity
-      await tx.activity.create({
+      await client.activity.create({
         data: {
           workItemId: createdItem.id,
           actorId: userCtx.id,
@@ -62,10 +70,20 @@ export class WorkItemService {
       });
 
       return createdItem;
-    });
+    };
+
+    if (tx) {
+      return run(tx);
+    }
+    return prisma.$transaction(run, { maxWait: 5000, timeout: 15000 });
   }
 
-  static async updateWorkItem(id: string, userCtx: UserContext, rawInput: unknown) {
+  static async updateWorkItem(
+    id: string,
+    userCtx: UserContext,
+    rawInput: unknown,
+    tx?: Prisma.TransactionClient
+  ) {
     const payload = parsePatchPayload(rawInput);
     const expectedVersion = payload.version;
 
@@ -109,20 +127,13 @@ export class WorkItemService {
       );
     }
 
-    // Execute atomic update & activity generation in single transaction
-    return await prisma.$transaction(async (tx) => {
-      const count = await WorkItemRepository.atomicUpdate(
-        id,
-        expectedVersion,
-        filteredChanges,
-        tx
-      );
+    const run = async (client: Prisma.TransactionClient) => {
+      const count = await WorkItemRepository.atomicUpdate(id, expectedVersion, filteredChanges, client);
 
       if (count === 0) {
         throw new StaleVersionError();
       }
 
-      // Generate Activity records for changed categories
       const activitiesToCreate: Array<Prisma.ActivityCreateManyInput> = [];
 
       if (filteredChanges.status) {
@@ -130,10 +141,7 @@ export class WorkItemService {
           workItemId: id,
           actorId: userCtx.id,
           action: ActivityAction.STATUS_CHANGED,
-          details: {
-            from: currentItem.status,
-            to: filteredChanges.status,
-          },
+          details: { from: currentItem.status, to: filteredChanges.status },
         });
       }
 
@@ -142,10 +150,7 @@ export class WorkItemService {
           workItemId: id,
           actorId: userCtx.id,
           action: ActivityAction.PRIORITY_CHANGED,
-          details: {
-            from: currentItem.priority,
-            to: filteredChanges.priority,
-          },
+          details: { from: currentItem.priority, to: filteredChanges.priority },
         });
       }
 
@@ -155,26 +160,19 @@ export class WorkItemService {
             workItemId: id,
             actorId: userCtx.id,
             action: ActivityAction.UNASSIGNED,
-            details: {
-              from: currentItem.assigneeId,
-              to: null,
-            },
+            details: { from: currentItem.assigneeId, to: null },
           });
         } else {
           activitiesToCreate.push({
             workItemId: id,
             actorId: userCtx.id,
             action: ActivityAction.ASSIGNED,
-            details: {
-              from: currentItem.assigneeId,
-              to: filteredChanges.assigneeId,
-            },
+            details: { from: currentItem.assigneeId, to: filteredChanges.assigneeId },
           });
         }
       }
 
-      // Generic UPDATED activity for text/meta field changes (title, description, nextAction, dueAt)
-      const otherUpdatedFields = [];
+      const otherUpdatedFields: string[] = [];
       if (filteredChanges.title) otherUpdatedFields.push("title");
       if (filteredChanges.description) otherUpdatedFields.push("description");
       if (filteredChanges.nextAction !== undefined) otherUpdatedFields.push("nextAction");
@@ -185,21 +183,28 @@ export class WorkItemService {
           workItemId: id,
           actorId: userCtx.id,
           action: ActivityAction.UPDATED,
-          details: {
-            fields: otherUpdatedFields,
-          },
+          details: { fields: otherUpdatedFields },
         });
       }
 
       for (const act of activitiesToCreate) {
-        await tx.activity.create({ data: act });
+        await client.activity.create({ data: act });
       }
 
-      return await WorkItemRepository.findById(id, tx);
-    });
+      return await WorkItemRepository.findById(id, client);
+    };
+
+    if (tx) {
+      return run(tx);
+    }
+    return prisma.$transaction(run, { maxWait: 5000, timeout: 15000 });
   }
 
-  static async claimWorkItem(id: string, userCtx: UserContext) {
+  static async claimWorkItem(
+    id: string,
+    userCtx: UserContext,
+    tx?: Prisma.TransactionClient
+  ) {
     const currentItem = await WorkItemRepository.findById(id);
     if (!currentItem) {
       throw new NotFoundError(`WorkItem '${id}' not found`);
@@ -211,38 +216,32 @@ export class WorkItemService {
 
     validateClaimEligibility(userCtx, currentItem.teamId, currentItem.status);
 
-    // Atomic claim conditional update
-    const result = await prisma.$transaction(async (tx) => {
-      const count = await WorkItemRepository.atomicClaim(id, userCtx.id, tx);
+    const run = async (client: Prisma.TransactionClient) => {
+      const count = await WorkItemRepository.atomicClaim(id, userCtx.id, client);
 
       if (count === 1) {
-        // Winner creates ASSIGNED activity
-        await tx.activity.create({
+        await client.activity.create({
           data: {
             workItemId: id,
             actorId: userCtx.id,
             action: ActivityAction.ASSIGNED,
-            details: {
-              from: null,
-              to: userCtx.id,
-              via: "claim",
-            },
+            details: { from: null, to: userCtx.id, via: "claim" },
           },
         });
-        return await WorkItemRepository.findById(id, tx);
+        return await WorkItemRepository.findById(id, client);
       }
       return null;
-    });
+    };
 
-    if (result) {
-      return result;
-    }
+    const result = tx
+      ? await run(tx)
+      : await prisma.$transaction(run, { maxWait: 5000, timeout: 15000 });
 
-    // Loser (count === 0): Perform fresh read to distinguish error per Section 22
+    if (result) return result;
+
+    // Loser: Fresh read to distinguish error (SPEC Section 22)
     const freshRead = await WorkItemRepository.findById(id);
-    if (!freshRead) {
-      throw new NotFoundError(`WorkItem '${id}' not found`);
-    }
+    if (!freshRead) throw new NotFoundError(`WorkItem '${id}' not found`);
     if (freshRead.status === Status.CLOSED) {
       throw new ClaimNotAllowedForStatusError("Claim is forbidden for CLOSED work items");
     }

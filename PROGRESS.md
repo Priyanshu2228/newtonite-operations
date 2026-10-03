@@ -132,20 +132,20 @@ npx tsc --noEmit: EXIT:0 (clean)
 
 ---
 
-## Session 2 — Remaining Work
+## Session 2 — COMPLETED ✅
 
-- [ ] `GET /api/work-items` — list with server-side search, filter, offset pagination
-- [ ] `POST /api/work-items` — create endpoint with idempotency
-- [ ] `GET /api/work-items/:id` — detail endpoint (403 vs 404 behavior)
-- [ ] `PATCH /api/work-items/:id` — update endpoint with idempotency
-- [ ] `POST /api/work-items/:id/claim` — claim endpoint with idempotency
-- [ ] `GET /api/work-items/:id/activity` — cursor pagination (base64url, tiebreaker)
-- [ ] `GET /api/teams` — scoped list
-- [ ] `GET /api/teams/:teamId/members` — assignable members only
-- [ ] Idempotency service (7 test scenarios from SPEC §57)
-- [ ] `beforeCommit` rollback hook for test §58
-- [ ] All Session 2 integration tests
-- [ ] `export const dynamic = "force-dynamic"` on all route handlers
+- [x] `GET /api/work-items` — list with server-side search, filter, offset pagination
+- [x] `POST /api/work-items` — create endpoint with idempotency
+- [x] `GET /api/work-items/:id` — detail endpoint (403 vs 404 behavior)
+- [x] `PATCH /api/work-items/:id` — update endpoint with idempotency
+- [x] `POST /api/work-items/:id/claim` — claim endpoint with idempotency
+- [x] `GET /api/work-items/:id/activity` — cursor pagination (base64url, tiebreaker)
+- [x] `GET /api/teams` — scoped list
+- [x] `GET /api/teams/:teamId/members` — assignable members only
+- [x] Idempotency service (7 test scenarios from SPEC §57)
+- [x] `beforeCommit` rollback hook for test §58
+- [x] All Session 2 integration tests
+- [x] `export const dynamic = "force-dynamic"` on all route handlers
 - [ ] ENGINEERING_DECISIONS.md (5+ decisions)
 
 ## Session 3 — Remaining Work
